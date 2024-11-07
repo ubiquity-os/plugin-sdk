@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.7](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.6...v1.0.7) (2024-11-07)
+
+
+### Bug Fixes
+
+* update Octokit import to use rest module ([02e39b1](https://github.com/ubiquity-os/plugin-sdk/commit/02e39b1bad762cf251076118df145d8f3f2d655d))
+
 ## [1.0.6](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.5...v1.0.6) (2024-11-07)
 
 

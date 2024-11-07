@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.1...v1.0.2) (2024-11-07)
+
+
+### Bug Fixes
+
+* added config types ([abda2ba](https://github.com/ubiquity-os/plugin-sdk/commit/abda2ba9863d425d108854d67e3635b5556f362b))
+
 ## [1.0.1](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.0...v1.0.1) (2024-11-07)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.2...v1.0.3) (2024-11-07)
+
+
+### Bug Fixes
+
+* fixed build ([bc176cc](https://github.com/ubiquity-os/plugin-sdk/commit/bc176cca7ee1b6ca98fe756305198d3d3658cc1b))
+
 ## [1.0.2](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.1...v1.0.2) (2024-11-07)
 
 

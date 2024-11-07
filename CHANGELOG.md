@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.0...v1.0.1) (2024-11-07)
+
+
+### Bug Fixes
+
+* **build:** rename build script to sdk:build ([fa15f9d](https://github.com/ubiquity-os/plugin-sdk/commit/fa15f9dfa046217f108d351d691a9095d51ef7c2))
+
 ## 1.0.0 (2024-11-07)
 
 

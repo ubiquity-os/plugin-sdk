@@ -1,70 +1,55 @@
-# `@ubiquity/ts-template`
+# `@ubiquity-os/plugin-sdk`
 
-This template repository includes support for the following:
+This project provides a software development kit (SDK) for creating plugins using the Ubiquity OS framework. It supports the following features:
 
 - TypeScript
-- Environment Variables
-- Conventional Commits
-- Automatic deployment to Cloudflare Pages
+- Creating a plugin instance
+- Injection of the context
+- Provider with a logger, an authenticated Octokit instance and the event payload
+
+## Key Functions
+
+### `createActionsPlugin`
+
+The `createActionsPlugin` function allows users to create plugins that will be able to run on GitHub Actions.
+
+### `createPlugin`
+
+The `createPlugin` function enables users to create a plugin that will run on Cloudflare Workers environment.
+
+## Getting Started
+
+To set up the project locally, `bun` is the preferred package manager.
+
+1. Install the dependencies:
+   ```sh
+   bun install
+   ```
+
+2. Build the SDK
+   ```
+   bun build
+   ```
+3. Link it locally to another plugin
+    ```
+    bun link
+    ```
+
+## Scripts
+
+The project provides several npm scripts for various tasks:
+
+- `bun run build`: Compiles the TypeScript code.
+- `bun run test`: Runs the tests.
+- `bun run lint`: Runs the linter.
+- `bun run format`: Formats the code using Prettier.
 
 ## Testing
 
-### Cypress
-
-To test with Cypress Studio UI, run
-
-```shell
-yarn cy:open
-```
-
-Otherwise, to simply run the tests through the console, run
-
-```shell
-yarn cy:run
-```
-
 ### Jest
 
-To start Jest tests, run
+To start Jest tests, run:
 
-```shell
-yarn test
-```
-
-## Sync any repository to latest `ts-template`
-
-A bash function that can do this for you:
-
-```bash
-sync-branch-to-template() {
-  local branch_name
-  branch_name=$(git rev-parse --abbrev-ref HEAD)
-  local original_remote
-  original_remote=$(git remote show | head -n 1)
-
-  # Add the template remote
-  git remote add template https://github.com/ubiquity/ts-template
-
-  # Fetch from the template remote
-  git fetch template development
-
-  if [ "$branch_name" != "HEAD" ]; then
-    # Create a new branch and switch to it
-    git checkout -b "chore/merge-${branch_name}-template"
-
-    # Merge the changes from the template remote
-    git merge template/development --allow-unrelated-histories
-
-    # Switch back to the original branch
-    git checkout "$branch_name"
-
-    # Push the changes to the original remote
-    git push "$original_remote" HEAD:"$branch_name"
-  else
-    echo "You are in a detached HEAD state. Please checkout a branch first."
-  fi
-
-  # Remove the template remote
-  # git remote remove template
-}
+```sh
+bun run test
 ```

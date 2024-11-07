@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.3...v1.0.4) (2024-11-07)
+
+
+### Bug Fixes
+
+* fixed husky ([b37fea8](https://github.com/ubiquity-os/plugin-sdk/commit/b37fea8297db1f776d0911fa2fea6591d7958a94))
+
 ## [1.0.3](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.2...v1.0.3) (2024-11-07)
 
 

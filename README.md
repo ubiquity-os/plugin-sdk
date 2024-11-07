@@ -28,7 +28,7 @@ To set up the project locally, `bun` is the preferred package manager.
 
 2. Build the SDK
    ```
-   bun build
+   bun sdk:build
    ```
 3. Link it locally to another plugin
     ```
@@ -39,7 +39,7 @@ To set up the project locally, `bun` is the preferred package manager.
 
 The project provides several npm scripts for various tasks:
 
-- `bun run build`: Compiles the TypeScript code.
+- `bun run sdk:build`: Compiles the TypeScript code.
 - `bun run test`: Runs the tests.
 - `bun run lint`: Runs the linter.
 - `bun run format`: Formats the code using Prettier.

@@ -49,7 +49,14 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TSu
     return;
   }
 
-  const inputs = Value.Decode(inputSchema, github.context.payload.inputs);
+  const inputPayload = github.context.payload.inputs;
+  const inputSchemaErrors = [...Value.Errors(inputSchema, inputPayload)];
+  if (inputSchemaErrors.length) {
+    console.dir(inputSchemaErrors, { depth: null });
+    core.setFailed(`Error: Invalid inputs payload: ${inputSchemaErrors.join(",")}`);
+    return;
+  }
+  const inputs = Value.Decode(inputSchema, inputPayload);
   const signature = inputs.signature;
   if (!(await verifySignature(pluginOptions.kernelPublicKey, inputs, signature))) {
     core.setFailed(`Error: Invalid signature`);

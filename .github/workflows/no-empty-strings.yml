@@ -19,12 +19,13 @@ jobs:
         with:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: oven-sh/setup-bun@v2
       - name: Install Dependencies
         run: |
-          yarn add tsx simple-git
+          bun add -D simple-git
       - name: Check for Empty Strings
         run: |
-          yarn tsx .github/empty-string-checker.ts
+          bun .github/empty-string-checker.ts
         env:
           GITHUB_TOKEN: ${{ steps.get_installation_token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}

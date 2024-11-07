@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.8](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.7...v1.0.8) (2024-11-07)
+
+
+### Bug Fixes
+
+* added debug logs on wrong inputs ([902a566](https://github.com/ubiquity-os/plugin-sdk/commit/902a5662676f40ecf810cbe6b23288444af8f8b5))
+* export octokit with core and not rest ([eb7c9ec](https://github.com/ubiquity-os/plugin-sdk/commit/eb7c9ec93395d3a664fa0fbc73742590224524e5))
+
 ## [1.0.7](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.6...v1.0.7) (2024-11-07)
 
 

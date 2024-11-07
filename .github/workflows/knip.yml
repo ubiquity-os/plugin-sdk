@@ -24,7 +24,7 @@ jobs:
         run: echo ${{ github.event.number }} > pr-number.txt
 
       - name: Run Knip
-        run: yarn knip || yarn knip --reporter json > knip-results.json
+        run: bun knip || bun knip --reporter json > knip-results.json
 
       - name: Upload knip result
         if: failure()

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.4...v1.0.5) (2024-11-07)
+
+
+### Bug Fixes
+
+* fixed lock file ([59ca2d2](https://github.com/ubiquity-os/plugin-sdk/commit/59ca2d26eae008e1927e672d6dbfcb40e4c67253))
+
 ## [1.0.4](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.3...v1.0.4) (2024-11-07)
 
 

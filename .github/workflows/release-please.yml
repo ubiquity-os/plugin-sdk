@@ -33,7 +33,7 @@ jobs:
       - name: Build
         run: |
           bun install --frozen-lockfile
-          bun build
+          bun sdk:build
         if: ${{ steps.release.outputs.release_created }}
       - run: bun publish --access public
         env:

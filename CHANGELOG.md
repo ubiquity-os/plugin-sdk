@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.5...v1.0.6) (2024-11-07)
+
+
+### Bug Fixes
+
+* add .npmrc file and update ignoreDependencies in knip config ([91d3880](https://github.com/ubiquity-os/plugin-sdk/commit/91d3880f454d12ae0c9462c1184b4ef5d9db762f))
+
 ## [1.0.5](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.4...v1.0.5) (2024-11-07)
 
 

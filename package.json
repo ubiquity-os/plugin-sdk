@@ -50,7 +50,7 @@
     "@octokit/rest": "^21.0.2",
     "@octokit/types": "^13.6.1",
     "@octokit/webhooks": "^13.3.0",
-    "@sinclair/typebox": "^0.33.20",
+    "@sinclair/typebox": "^0.33.21",
     "@ubiquity-os/ubiquity-os-logger": "^1.3.2",
     "dotenv": "^16.4.5",
     "hono": "^4.6.9"

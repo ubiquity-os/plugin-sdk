@@ -6,8 +6,10 @@ const config: KnipConfig = {
   ignore: ["**/__mocks__/**", "**/__fixtures__/**"],
   ignoreExportsUsedInFile: true,
   // eslint can also be safely ignored as per the docs: https://knip.dev/guides/handling-issues#eslint--jest
-  ignoreDependencies: ["eslint-config-prettier", "eslint-plugin-prettier", "@types/jest", "@mswjs/data", "tsx", "simple-git"],
+  ignoreDependencies: ["eslint-config-prettier", "eslint-plugin-prettier", "@types/jest", "@mswjs/data", "simple-git"],
   eslint: true,
+  // Knip doesn't recognize 'bun publish'
+  ignoreBinaries: ["publish"],
 };
 
 export default config;

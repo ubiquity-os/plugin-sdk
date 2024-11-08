@@ -43,9 +43,9 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents
   options?: Options
 ) {
   const pluginOptions = {
-    kernelPublicKey: options?.kernelPublicKey || KERNEL_PUBLIC_KEY,
-    logLevel: options?.logLevel || LOG_LEVEL.INFO,
-    postCommentOnError: options?.postCommentOnError || true,
+    kernelPublicKey: options?.kernelPublicKey ?? KERNEL_PUBLIC_KEY,
+    logLevel: options?.logLevel ?? LOG_LEVEL.INFO,
+    postCommentOnError: options?.postCommentOnError ?? true,
     settingsSchema: options?.settingsSchema,
     envSchema: options?.envSchema,
   };
@@ -123,6 +123,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents
       }
 
       if (pluginOptions.postCommentOnError && loggerError) {
+        console.log("====> posting comment on error");
         await postComment(context, loggerError);
       }
 

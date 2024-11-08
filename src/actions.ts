@@ -36,11 +36,11 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TSu
   options?: Options
 ) {
   const pluginOptions = {
-    logLevel: options?.logLevel || LOG_LEVEL.INFO,
-    postCommentOnError: options?.postCommentOnError || true,
+    logLevel: options?.logLevel ?? LOG_LEVEL.INFO,
+    postCommentOnError: options?.postCommentOnError ?? true,
     settingsSchema: options?.settingsSchema,
     envSchema: options?.envSchema,
-    kernelPublicKey: options?.kernelPublicKey || KERNEL_PUBLIC_KEY,
+    kernelPublicKey: options?.kernelPublicKey ?? KERNEL_PUBLIC_KEY,
   };
 
   const pluginGithubToken = process.env.PLUGIN_GITHUB_TOKEN;

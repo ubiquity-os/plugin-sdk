@@ -10,11 +10,32 @@
   "module": "dist/index.mjs",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
+  "types": "dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "manifest": [
+        "dist/manifest.d.ts"
+      ],
+      "constants": [
+        "dist/constants.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
       "import": "./dist/index.mjs"
+    },
+    "./manifest": {
+      "types": "./dist/manifest.d.ts",
+      "import": "./dist/manifest.mjs",
+      "require": "./dist/manifest.js"
+    },
+    "./constants": {
+      "types": "./dist/constants.d.ts",
+      "import": "./dist/constants.mjs",
+      "require": "./dist/constants.js"
     }
   },
   "files": [

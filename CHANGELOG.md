@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.9](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.8...v1.0.9) (2024-11-08)
+
+
+### Bug Fixes
+
+* split exports into individual modules ([516c6da](https://github.com/ubiquity-os/plugin-sdk/commit/516c6da87588b2e527b432e326860e2c4a7205a3))
+
 ## [1.0.8](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.7...v1.0.8) (2024-11-07)
 
 

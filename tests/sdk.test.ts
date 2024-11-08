@@ -23,7 +23,7 @@ const issueCommentedEvent = {
   eventPayload: issueCommented.eventPayload,
 };
 
-const sdkOctokitImportPath = "../src/sdk/octokit";
+const sdkOctokitImportPath = "../src/octokit";
 const githubActionImportPath = "@actions/github";
 const githubCoreImportPath = "@actions/core";
 
@@ -225,7 +225,7 @@ describe("SDK actions tests", () => {
       setFailed,
     }));
     const createDispatchEvent = jest.fn();
-    jest.mock("../src/sdk/octokit", () => ({
+    jest.mock(sdkOctokitImportPath, () => ({
       customOctokit: class MockOctokit {
         constructor() {
           return {

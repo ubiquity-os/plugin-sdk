@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
 
       - name: Jest With Coverage
-        run: yarn install --immutable --immutable-cache --check-cache && yarn test
+        run: bun install --frozen-lockfile && bun run jest:test
 
       - name: Add Jest Report to Summary
         if: always()

@@ -1,6 +1,6 @@
 {
   "name": "@ubiquity-os/plugin-sdk",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "SDK for plugin support.",
   "author": "Ubiquity DAO",
   "license": "MIT",

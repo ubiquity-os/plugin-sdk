@@ -54,8 +54,8 @@ async function getWorkerInputs(stateId: string, eventName: string, eventPayload:
   const inputs = {
     stateId,
     eventName,
-    eventPayload: JSON.stringify(eventPayload),
-    settings: JSON.stringify(settings),
+    eventPayload,
+    settings,
     authToken,
     ref,
   };

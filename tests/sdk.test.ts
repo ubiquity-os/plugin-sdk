@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import { EmitterWebhookEventName } from "@octokit/webhooks";
 import * as crypto from "crypto";
+import { http, HttpResponse } from "msw";
 import { Context } from "../src/context";
 import { createPlugin } from "../src/server";
 import { server } from "./__mocks__/node";
@@ -23,7 +24,7 @@ const issueCommentedEvent = {
   eventPayload: issueCommented.eventPayload,
 };
 
-const sdkOctokitImportPath = "../src/sdk/octokit";
+const sdkOctokitImportPath = "../src/octokit";
 const githubActionImportPath = "@actions/github";
 const githubCoreImportPath = "@actions/core";
 
@@ -54,8 +55,8 @@ async function getWorkerInputs(stateId: string, eventName: string, eventPayload:
   const inputs = {
     stateId,
     eventName,
-    eventPayload: JSON.stringify(eventPayload),
-    settings: JSON.stringify(settings),
+    eventPayload,
+    settings,
     authToken,
     ref,
   };
@@ -128,19 +129,17 @@ describe("SDK worker tests", () => {
   });
   it("Should handle thrown errors", async () => {
     const createComment = jest.fn();
-    jest.mock(sdkOctokitImportPath, () => ({
-      customOctokit: class MockOctokit {
-        constructor() {
-          return {
-            rest: {
-              issues: {
-                createComment,
-              },
-            },
-          };
-        }
-      },
-    }));
+    server.use(
+      http.post(
+        "https://api.github.com/repos/:owner/:repo/issues/:issue_number/comments",
+        async ({ params, request }) => {
+          const body = (await request.json()) as { body: string };
+          createComment({ ...params, issue_number: Number(params.issue_number), body: body?.body });
+          return new HttpResponse();
+        },
+        { once: true }
+      )
+    );
 
     const { createPlugin } = await import("../src/server");
     const app = createPlugin(
@@ -177,7 +176,7 @@ describe("SDK worker tests", () => {
 
 <!-- Ubiquity - undefined -  - undefined
 {
-  "caller": "error"
+  "caller": "handler"
 }
 -->
 `,
@@ -209,7 +208,7 @@ describe("SDK actions tests", () => {
   it("Should accept correct request", async () => {
     const inputs = getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
     const githubInputs = await inputs;
-    jest.mock(githubActionImportPath, () => ({
+    jest.unstable_mockModule(githubActionImportPath, () => ({
       context: {
         runId: "1",
         payload: {
@@ -220,12 +219,12 @@ describe("SDK actions tests", () => {
     }));
     const setOutput = jest.fn();
     const setFailed = jest.fn();
-    jest.mock(githubCoreImportPath, () => ({
+    jest.unstable_mockModule(githubCoreImportPath, () => ({
       setOutput,
       setFailed,
     }));
     const createDispatchEvent = jest.fn();
-    jest.mock("../src/sdk/octokit", () => ({
+    jest.unstable_mockModule(sdkOctokitImportPath, () => ({
       customOctokit: class MockOctokit {
         constructor() {
           return {
@@ -266,7 +265,7 @@ describe("SDK actions tests", () => {
     const inputs = getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
     const githubInputs = await inputs;
 
-    jest.mock("@actions/github", () => ({
+    jest.unstable_mockModule("@actions/github", () => ({
       context: {
         runId: "1",
         payload: {
@@ -280,7 +279,7 @@ describe("SDK actions tests", () => {
     }));
     const setOutput = jest.fn();
     const setFailed = jest.fn();
-    jest.mock(githubCoreImportPath, () => ({
+    jest.unstable_mockModule(githubCoreImportPath, () => ({
       setOutput,
       setFailed,
     }));
@@ -303,7 +302,7 @@ describe("SDK actions tests", () => {
     const inputs = getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
     const githubInputs = await inputs;
 
-    jest.mock(githubActionImportPath, () => ({
+    jest.unstable_mockModule(githubActionImportPath, () => ({
       context: {
         runId: "1",
         payload: {
@@ -323,12 +322,12 @@ describe("SDK actions tests", () => {
     }));
     const setOutput = jest.fn();
     const setFailed = jest.fn();
-    jest.mock(githubCoreImportPath, () => ({
+    jest.unstable_mockModule(githubCoreImportPath, () => ({
       setOutput,
       setFailed,
     }));
     const createDispatchEventFn = jest.fn();
-    jest.mock(sdkOctokitImportPath, () => ({
+    jest.unstable_mockModule(sdkOctokitImportPath, () => ({
       customOctokit: class MockOctokit {
         constructor() {
           return {

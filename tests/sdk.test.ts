@@ -46,6 +46,23 @@ async function getWorkerInputs(stateId: string, eventName: string, eventPayload:
   };
 }
 
+async function getWorkflowInputs(stateId: string, eventName: string, eventPayload: object, settings: object, authToken: string, ref: string) {
+  const inputs = {
+    stateId,
+    eventName,
+    eventPayload: JSON.stringify(eventPayload),
+    settings: JSON.stringify(settings),
+    authToken,
+    ref,
+  };
+  const signature = await signPayload(JSON.stringify(inputs), privateKey);
+
+  return {
+    ...inputs,
+    signature,
+  };
+}
+
 const app = createPlugin(
   async (context: Context<{ shouldFail: boolean }>) => {
     if (context.config.shouldFail) {
@@ -184,7 +201,7 @@ describe("SDK actions tests", () => {
   };
 
   it("Should accept correct request", async () => {
-    const inputs = getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
+    const inputs = getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
     const githubInputs = await inputs;
     jest.unstable_mockModule(githubActionImportPath, () => ({
       context: {
@@ -240,7 +257,7 @@ describe("SDK actions tests", () => {
     });
   });
   it("Should deny invalid signature", async () => {
-    const inputs = getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
+    const inputs = getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
     const githubInputs = await inputs;
 
     jest.unstable_mockModule("@actions/github", () => ({
@@ -277,7 +294,7 @@ describe("SDK actions tests", () => {
     expect(setOutput).not.toHaveBeenCalled();
   });
   it("Should accept inputs in different order", async () => {
-    const inputs = getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
+    const inputs = getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
     const githubInputs = await inputs;
 
     jest.unstable_mockModule(githubActionImportPath, () => ({

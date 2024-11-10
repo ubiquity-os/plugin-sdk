@@ -62,6 +62,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents
     }
 
     const body = await ctx.req.json();
+    console.log("=== worker inputs", body);
     const inputSchemaErrors = [...Value.Errors(inputSchema, body)];
     if (inputSchemaErrors.length) {
       console.dir(inputSchemaErrors, { depth: null });

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.11](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.10...v1.0.11) (2024-11-10)
+
+
+### Bug Fixes
+
+* remove type module for package ([004e173](https://github.com/ubiquity-os/plugin-sdk/commit/004e1735a6c98d7bb015ac649bb2bbb57890f48f))
+
 ## [1.0.10](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.9...v1.0.10) (2024-11-10)
 
 

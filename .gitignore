@@ -12,3 +12,4 @@ coverage
 junit.xml
 cypress/screenshots
 dist
+test-dashboard.md

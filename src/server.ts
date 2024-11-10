@@ -18,6 +18,7 @@ interface Options {
   postCommentOnError?: boolean;
   settingsSchema?: TAnySchema;
   envSchema?: TAnySchema;
+  bypassSignatureVerification?: boolean;
 }
 
 const inputSchema = T.Object({
@@ -28,6 +29,12 @@ const inputSchema = T.Object({
   settings: T.Record(T.String(), T.Any()),
   ref: T.String(),
   signature: T.String(),
+  bypassSignatureVerification: T.Optional(
+    T.Boolean({
+      default: false,
+      description: "Bypass signature verification (caution: only use this if you know what you're doing)",
+    })
+  ),
 });
 
 export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
@@ -36,9 +43,9 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents
   options?: Options
 ) {
   const pluginOptions = {
-    kernelPublicKey: options?.kernelPublicKey || KERNEL_PUBLIC_KEY,
-    logLevel: options?.logLevel || LOG_LEVEL.INFO,
-    postCommentOnError: options?.postCommentOnError || true,
+    kernelPublicKey: options?.kernelPublicKey ?? KERNEL_PUBLIC_KEY,
+    logLevel: options?.logLevel ?? LOG_LEVEL.INFO,
+    postCommentOnError: options?.postCommentOnError ?? true,
     settingsSchema: options?.settingsSchema,
     envSchema: options?.envSchema,
   };
@@ -62,7 +69,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents
     }
     const inputs = Value.Decode(inputSchema, body);
     const signature = inputs.signature;
-    if (!(await verifySignature(pluginOptions.kernelPublicKey, inputs, signature))) {
+    if (!options?.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, inputs, signature))) {
       throw new HTTPException(400, { message: "Invalid signature" });
     }
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.10](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.9...v1.0.10) (2024-11-10)
+
+
+### Bug Fixes
+
+* add condition for GitHub App token retrieval ([5b0d845](https://github.com/ubiquity-os/plugin-sdk/commit/5b0d845e834bb41386c8aecb4fc9ddb2156accf4))
+* add mock data and test cases for SDK and plugins ([e1bbf4e](https://github.com/ubiquity-os/plugin-sdk/commit/e1bbf4ec4a5c7d883ff546b53c42ab5f4bcc55cd))
+* empty strings script ([d69bee2](https://github.com/ubiquity-os/plugin-sdk/commit/d69bee2825e47555724b63205f9c996abfa528e1))
+* imported sign functions into the SDK ([151c588](https://github.com/ubiquity-os/plugin-sdk/commit/151c588527330300a404f177ff083da23659262c))
+* inputs generation is now correct for both workers and actions ([1b81447](https://github.com/ubiquity-os/plugin-sdk/commit/1b814477f45dbc52357d47a03d0aae339d1a1a3e))
+* optional signature disable ([26d8341](https://github.com/ubiquity-os/plugin-sdk/commit/26d834175ab9f1bda15a6c0c132f0b61e181fe3b))
+* **tests:** use `jest.unstable_mockModule` for mocking imports ([0a617bd](https://github.com/ubiquity-os/plugin-sdk/commit/0a617bd77d0c02f49519ac8d9cd7f417ad294e9b))
+* use nullish coalescing for pluginOptions defaults ([84bd57f](https://github.com/ubiquity-os/plugin-sdk/commit/84bd57f23c14eff70d4f732368077907949f0565))
+
 ## [1.0.9](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.8...v1.0.9) (2024-11-08)
 
 

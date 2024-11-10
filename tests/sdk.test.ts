@@ -4,6 +4,7 @@ import * as crypto from "crypto";
 import { http, HttpResponse } from "msw";
 import { Context } from "../src/context";
 import { createPlugin } from "../src/server";
+import { signPayload } from "../src/signature";
 import { server } from "./__mocks__/node";
 import issueCommented from "./__mocks__/requests/issue-comment-post.json";
 
@@ -28,29 +29,6 @@ const sdkOctokitImportPath = "../src/octokit";
 const githubActionImportPath = "@actions/github";
 const githubCoreImportPath = "@actions/core";
 
-async function importRsaPrivateKey(pem: string) {
-  const pemContents = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").trim();
-  const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
-
-  return await crypto.subtle.importKey(
-    "pkcs8",
-    binaryDer.buffer as ArrayBuffer,
-    {
-      name: "RSASSA-PKCS1-v1_5",
-      hash: "SHA-256",
-    },
-    true,
-    ["sign"]
-  );
-}
-
-async function signPayload(payload: string) {
-  const data = new TextEncoder().encode(payload);
-  const pk = await importRsaPrivateKey(privateKey);
-  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", pk, data);
-  return btoa(String.fromCharCode(...new Uint8Array(signature)));
-}
-
 async function getWorkerInputs(stateId: string, eventName: string, eventPayload: object, settings: object, authToken: string, ref: string) {
   const inputs = {
     stateId,
@@ -60,7 +38,7 @@ async function getWorkerInputs(stateId: string, eventName: string, eventPayload:
     authToken,
     ref,
   };
-  const signature = await signPayload(JSON.stringify(inputs));
+  const signature = await signPayload(JSON.stringify(inputs), privateKey);
 
   return {
     ...inputs,

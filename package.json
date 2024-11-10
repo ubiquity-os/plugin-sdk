@@ -19,6 +19,9 @@
       ],
       "constants": [
         "dist/constants.d.ts"
+      ],
+      "signature": [
+        "dist/signature.d.ts"
       ]
     }
   },
@@ -37,6 +40,11 @@
       "types": "./dist/constants.d.ts",
       "import": "./dist/constants.mjs",
       "require": "./dist/constants.js"
+    },
+    "./signature": {
+      "types": "./dist/signature.d.ts",
+      "import": "./dist/signature.mjs",
+      "require": "./dist/signature.js"
     }
   },
   "files": [

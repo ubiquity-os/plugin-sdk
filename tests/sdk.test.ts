@@ -7,6 +7,7 @@ import { createPlugin } from "../src/server";
 import { signPayload } from "../src/signature";
 import { server } from "./__mocks__/node";
 import issueCommented from "./__mocks__/requests/issue-comment-post.json";
+import { CommandCall } from "../src/types/command";
 
 const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
   modulusLength: 2048,
@@ -29,7 +30,15 @@ const sdkOctokitImportPath = "../src/octokit";
 const githubActionImportPath = "@actions/github";
 const githubCoreImportPath = "@actions/core";
 
-async function getWorkerInputs(stateId: string, eventName: string, eventPayload: object, settings: object, authToken: string, ref: string) {
+async function getWorkerInputs(
+  stateId: string,
+  eventName: string,
+  eventPayload: object,
+  settings: object,
+  authToken: string,
+  ref: string,
+  command: CommandCall | null
+) {
   const inputs = {
     stateId,
     eventName,
@@ -37,6 +46,7 @@ async function getWorkerInputs(stateId: string, eventName: string, eventPayload:
     settings,
     authToken,
     ref,
+    command,
   };
   const signature = await signPayload(JSON.stringify(inputs), privateKey);
 
@@ -46,7 +56,15 @@ async function getWorkerInputs(stateId: string, eventName: string, eventPayload:
   };
 }
 
-async function getWorkflowInputs(stateId: string, eventName: string, eventPayload: object, settings: object, authToken: string, ref: string) {
+async function getWorkflowInputs(
+  stateId: string,
+  eventName: string,
+  eventPayload: object,
+  settings: object,
+  authToken: string,
+  ref: string,
+  command: CommandCall | null
+) {
   const inputs = {
     stateId,
     eventName,
@@ -54,6 +72,7 @@ async function getWorkflowInputs(stateId: string, eventName: string, eventPayloa
     settings: JSON.stringify(settings),
     authToken,
     ref,
+    command: JSON.stringify(command),
   };
   const signature = await signPayload(JSON.stringify(inputs), privateKey);
 
@@ -71,6 +90,7 @@ const app = createPlugin(
     return {
       success: true,
       event: context.eventName,
+      command: context.command,
     };
   },
   { name: "test" },
@@ -111,13 +131,13 @@ describe("SDK worker tests", () => {
     expect(res.status).toEqual(400);
   });
   it("Should deny POST request with invalid signature", async () => {
-    const inputs = getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: false }, "test", "");
+    const inputs = await getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: false }, "test", "", null);
 
     const res = await app.request("/", {
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify({ ...(await inputs), signature: "invalid_signature" }),
+      body: JSON.stringify({ ...inputs, signature: "invalid_signature" }),
       method: "POST",
     });
     expect(res.status).toEqual(400);
@@ -151,13 +171,13 @@ describe("SDK worker tests", () => {
       { kernelPublicKey: publicKey }
     );
 
-    const inputs = getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: true }, "test", "");
+    const inputs = await getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: true }, "test", "", null);
 
     const res = await app.request("/", {
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify(await inputs),
+      body: JSON.stringify(inputs),
       method: "POST",
     });
     expect(res.status).toEqual(500);
@@ -178,18 +198,24 @@ describe("SDK worker tests", () => {
     });
   });
   it("Should accept correct request", async () => {
-    const inputs = getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: false }, "test", "");
+    const inputs = await getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: false }, "test", "", {
+      name: "test",
+      parameters: { param1: "test" },
+    });
 
     const res = await app.request("/", {
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify(await inputs),
+      body: JSON.stringify(inputs),
       method: "POST",
     });
     expect(res.status).toEqual(200);
     const result = await res.json();
-    expect(result).toEqual({ stateId: "stateId", output: { success: true, event: issueCommented.eventName } });
+    expect(result).toEqual({
+      stateId: "stateId",
+      output: { success: true, event: issueCommented.eventName, command: { name: "test", parameters: { param1: "test" } } },
+    });
   });
 });
 
@@ -201,8 +227,10 @@ describe("SDK actions tests", () => {
   };
 
   it("Should accept correct request", async () => {
-    const inputs = getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
-    const githubInputs = await inputs;
+    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "", {
+      name: "test",
+      parameters: { param1: "test" },
+    });
     jest.unstable_mockModule(githubActionImportPath, () => ({
       context: {
         runId: "1",
@@ -238,27 +266,28 @@ describe("SDK actions tests", () => {
       async (context: Context) => {
         return {
           event: context.eventName,
+          command: context.command,
         };
       },
       {
         kernelPublicKey: publicKey,
       }
     );
+    const expectedResult = { event: issueCommented.eventName, command: { name: "test", parameters: { param1: "test" } } };
     expect(setFailed).not.toHaveBeenCalled();
-    expect(setOutput).toHaveBeenCalledWith("result", { event: issueCommented.eventName });
+    expect(setOutput).toHaveBeenCalledWith("result", expectedResult);
     expect(createDispatchEvent).toHaveBeenCalledWith({
       event_type: "return-data-to-ubiquity-os-kernel",
       owner: repo.owner,
       repo: repo.repo,
       client_payload: {
         state_id: "stateId",
-        output: JSON.stringify({ event: issueCommented.eventName }),
+        output: JSON.stringify(expectedResult),
       },
     });
   });
   it("Should deny invalid signature", async () => {
-    const inputs = getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
-    const githubInputs = await inputs;
+    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "", null);
 
     jest.unstable_mockModule("@actions/github", () => ({
       context: {
@@ -294,8 +323,7 @@ describe("SDK actions tests", () => {
     expect(setOutput).not.toHaveBeenCalled();
   });
   it("Should accept inputs in different order", async () => {
-    const inputs = getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "");
-    const githubInputs = await inputs;
+    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "", null);
 
     jest.unstable_mockModule(githubActionImportPath, () => ({
       context: {
@@ -309,6 +337,7 @@ describe("SDK actions tests", () => {
             ref: githubInputs.ref,
             authToken: githubInputs.authToken,
             stateId: githubInputs.stateId,
+            command: githubInputs.command,
             eventPayload: githubInputs.eventPayload,
           },
         },

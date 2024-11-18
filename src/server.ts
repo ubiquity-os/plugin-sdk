@@ -11,6 +11,7 @@ import { Context } from "./context";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { Manifest } from "./types/manifest";
+import { HandlerReturn } from "./types/sdk";
 
 interface Options {
   kernelPublicKey?: string;
@@ -34,7 +35,7 @@ const inputSchema = T.Object({
 });
 
 export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
-  handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => Promise<Record<string, unknown> | undefined>,
+  handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => HandlerReturn,
   manifest: Manifest,
   options?: Options
 ) {
@@ -62,7 +63,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     const body = await ctx.req.json();
     const inputSchemaErrors = [...Value.Errors(inputSchema, body)];
     if (inputSchemaErrors.length) {
-      console.dir(inputSchemaErrors, { depth: null });
+      console.log(inputSchemaErrors, { depth: null });
       throw new HTTPException(400, { message: "Invalid body" });
     }
     const inputs = Value.Decode(inputSchema, body);
@@ -76,7 +77,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       try {
         config = Value.Decode(pluginOptions.settingsSchema, Value.Default(pluginOptions.settingsSchema, inputs.settings));
       } catch (e) {
-        console.dir(...Value.Errors(pluginOptions.settingsSchema, inputs.settings), { depth: null });
+        console.log(...Value.Errors(pluginOptions.settingsSchema, inputs.settings), { depth: null });
         throw e;
       }
     } else {
@@ -89,7 +90,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       try {
         env = Value.Decode(pluginOptions.envSchema, Value.Default(pluginOptions.envSchema, honoEnvironment));
       } catch (e) {
-        console.dir(...Value.Errors(pluginOptions.envSchema, honoEnvironment), { depth: null });
+        console.log(...Value.Errors(pluginOptions.envSchema, honoEnvironment), { depth: null });
         throw e;
       }
     } else {
@@ -101,7 +102,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       try {
         command = Value.Decode(pluginOptions.commandSchema, Value.Default(pluginOptions.commandSchema, inputs.command));
       } catch (e) {
-        console.dir(...Value.Errors(pluginOptions.commandSchema, inputs.command), { depth: null });
+        console.log(...Value.Errors(pluginOptions.commandSchema, inputs.command), { depth: null });
         throw e;
       }
     } else if (inputs.command) {
@@ -120,7 +121,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
 
     try {
       const result = await handler(context);
-      return ctx.json({ stateId: inputs.stateId, output: result });
+      return ctx.json({ stateId: inputs.stateId, output: result ? JSON.stringify(result) : null });
     } catch (error) {
       console.error(error);
 

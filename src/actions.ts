@@ -12,6 +12,7 @@ import { verifySignature } from "./signature";
 import { KERNEL_PUBLIC_KEY } from "./constants";
 import { jsonType } from "./types/util";
 import { commandCallSchema } from "./types/command";
+import { HandlerReturn } from "./types/sdk";
 
 config();
 
@@ -37,7 +38,7 @@ const inputSchema = T.Object({
 });
 
 export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCommand = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
-  handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => Promise<Record<string, unknown> | undefined>,
+  handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => HandlerReturn,
   options?: Options
 ) {
   const pluginOptions = {
@@ -160,7 +161,7 @@ function getGithubWorkflowRunUrl() {
   return `${github.context.payload.repository?.html_url}/actions/runs/${github.context.runId}`;
 }
 
-async function returnDataToKernel(repoToken: string, stateId: string, output: object | undefined) {
+async function returnDataToKernel(repoToken: string, stateId: string, output: HandlerReturn) {
   const octokit = new customOctokit({ auth: repoToken });
   await octokit.rest.repos.createDispatchEvent({
     owner: github.context.repo.owner,

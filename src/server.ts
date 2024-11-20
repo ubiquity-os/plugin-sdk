@@ -121,7 +121,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
 
     try {
       const result = await handler(context);
-      return ctx.json({ stateId: inputs.stateId, output: result ? JSON.stringify(result) : null });
+      return ctx.json({ stateId: inputs.stateId, output: result ?? {} });
     } catch (error) {
       console.error(error);
 

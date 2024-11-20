@@ -21,6 +21,9 @@
       ],
       "signature": [
         "dist/signature.d.ts"
+      ],
+      "octokit": [
+        "dist/octokit.d.ts"
       ]
     }
   },

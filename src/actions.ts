@@ -23,7 +23,10 @@ interface Options {
   envSchema?: TAnySchema;
   commandSchema?: TAnySchema;
   kernelPublicKey?: string;
-  disableSignatureVerification?: boolean; // only use for local development
+  /**
+   * @deprecated This disables signature verification - only for local development
+   */
+  bypassSignatureVerification?: boolean;
 }
 
 const inputSchema = T.Object({
@@ -48,7 +51,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     envSchema: options?.envSchema,
     commandSchema: options?.commandSchema,
     kernelPublicKey: options?.kernelPublicKey ?? KERNEL_PUBLIC_KEY,
-    disableSignatureVerification: options?.disableSignatureVerification || false,
+    bypassSignatureVerification: options?.bypassSignatureVerification || false,
   };
 
   const pluginGithubToken = process.env.PLUGIN_GITHUB_TOKEN;
@@ -59,7 +62,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
 
   const body = github.context.payload.inputs;
   const signature = body.signature;
-  if (!pluginOptions.disableSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, body, signature))) {
+  if (!pluginOptions.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, body, signature))) {
     core.setFailed(`Error: Invalid signature`);
     return;
   }

@@ -20,6 +20,9 @@ interface Options {
   settingsSchema?: TAnySchema;
   envSchema?: TAnySchema;
   commandSchema?: TAnySchema;
+  /**
+   * @deprecated This disables signature verification - only for local development
+   */
   bypassSignatureVerification?: boolean;
 }
 

@@ -131,7 +131,15 @@ describe("SDK worker tests", () => {
     expect(res.status).toEqual(400);
   });
   it("Should deny POST request with invalid signature", async () => {
-    const inputs = await getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: false }, "test", "", null);
+    const inputs = await getWorkerInputs(
+      "stateId",
+      issueCommentedEvent.eventName,
+      issueCommentedEvent.eventPayload,
+      { shouldFail: false },
+      "test",
+      "main",
+      null
+    );
 
     const res = await app.request("/", {
       headers: {
@@ -171,7 +179,15 @@ describe("SDK worker tests", () => {
       { kernelPublicKey: publicKey }
     );
 
-    const inputs = await getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: true }, "test", "", null);
+    const inputs = await getWorkerInputs(
+      "stateId",
+      issueCommentedEvent.eventName,
+      issueCommentedEvent.eventPayload,
+      { shouldFail: true },
+      "test",
+      "main",
+      null
+    );
 
     const res = await app.request("/", {
       headers: {
@@ -198,7 +214,7 @@ describe("SDK worker tests", () => {
     });
   });
   it("Should accept correct request", async () => {
-    const inputs = await getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: false }, "test", "", {
+    const inputs = await getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: false }, "test", "main", {
       name: "test",
       parameters: { param1: "test" },
     });
@@ -227,7 +243,7 @@ describe("SDK actions tests", () => {
   };
 
   it("Should accept correct request", async () => {
-    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "", {
+    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", {
       name: "test",
       parameters: { param1: "test" },
     });
@@ -287,7 +303,7 @@ describe("SDK actions tests", () => {
     });
   });
   it("Should deny invalid signature", async () => {
-    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "", null);
+    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", null);
 
     jest.unstable_mockModule("@actions/github", () => ({
       context: {
@@ -323,7 +339,7 @@ describe("SDK actions tests", () => {
     expect(setOutput).not.toHaveBeenCalled();
   });
   it("Should accept inputs in different order", async () => {
-    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "", null);
+    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", null);
 
     jest.unstable_mockModule(githubActionImportPath, () => ({
       context: {

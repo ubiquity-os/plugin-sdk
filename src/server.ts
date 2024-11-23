@@ -11,6 +11,7 @@ import { Context } from "./context";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { Manifest } from "./types/manifest";
+import { HandlerReturn } from "./types/sdk";
 
 interface Options {
   kernelPublicKey?: string;
@@ -18,6 +19,10 @@ interface Options {
   postCommentOnError?: boolean;
   settingsSchema?: TAnySchema;
   envSchema?: TAnySchema;
+  commandSchema?: TAnySchema;
+  /**
+   * @deprecated This disables signature verification - only for local development
+   */
   bypassSignatureVerification?: boolean;
 }
 
@@ -25,20 +30,15 @@ const inputSchema = T.Object({
   stateId: T.String(),
   eventName: T.String(),
   eventPayload: T.Record(T.String(), T.Any()),
+  command: T.Union([T.Null(), T.Object({ name: T.String(), parameters: T.Unknown() })]),
   authToken: T.String(),
   settings: T.Record(T.String(), T.Any()),
   ref: T.String(),
   signature: T.String(),
-  bypassSignatureVerification: T.Optional(
-    T.Boolean({
-      default: false,
-      description: "Bypass signature verification (caution: only use this if you know what you're doing)",
-    })
-  ),
 });
 
-export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
-  handler: (context: Context<TConfig, TEnv, TSupportedEvents>) => Promise<Record<string, unknown> | undefined>,
+export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
+  handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => HandlerReturn,
   manifest: Manifest,
   options?: Options
 ) {
@@ -48,6 +48,8 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents
     postCommentOnError: options?.postCommentOnError ?? true,
     settingsSchema: options?.settingsSchema,
     envSchema: options?.envSchema,
+    commandSchema: options?.commandSchema,
+    bypassSignatureVerification: options?.bypassSignatureVerification || false,
   };
 
   const app = new Hono();
@@ -64,12 +66,12 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents
     const body = await ctx.req.json();
     const inputSchemaErrors = [...Value.Errors(inputSchema, body)];
     if (inputSchemaErrors.length) {
-      console.dir(inputSchemaErrors, { depth: null });
+      console.log(inputSchemaErrors, { depth: null });
       throw new HTTPException(400, { message: "Invalid body" });
     }
     const inputs = Value.Decode(inputSchema, body);
     const signature = inputs.signature;
-    if (!options?.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, inputs, signature))) {
+    if (!pluginOptions.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, inputs, signature))) {
       throw new HTTPException(400, { message: "Invalid signature" });
     }
 
@@ -78,7 +80,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents
       try {
         config = Value.Decode(pluginOptions.settingsSchema, Value.Default(pluginOptions.settingsSchema, inputs.settings));
       } catch (e) {
-        console.dir(...Value.Errors(pluginOptions.settingsSchema, inputs.settings), { depth: null });
+        console.log(...Value.Errors(pluginOptions.settingsSchema, inputs.settings), { depth: null });
         throw e;
       }
     } else {
@@ -91,16 +93,29 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents
       try {
         env = Value.Decode(pluginOptions.envSchema, Value.Default(pluginOptions.envSchema, honoEnvironment));
       } catch (e) {
-        console.dir(...Value.Errors(pluginOptions.envSchema, honoEnvironment), { depth: null });
+        console.log(...Value.Errors(pluginOptions.envSchema, honoEnvironment), { depth: null });
         throw e;
       }
     } else {
       env = ctx.env as TEnv;
     }
 
-    const context: Context<TConfig, TEnv, TSupportedEvents> = {
+    let command: TCommand | null = null;
+    if (inputs.command && pluginOptions.commandSchema) {
+      try {
+        command = Value.Decode(pluginOptions.commandSchema, Value.Default(pluginOptions.commandSchema, inputs.command));
+      } catch (e) {
+        console.log(...Value.Errors(pluginOptions.commandSchema, inputs.command), { depth: null });
+        throw e;
+      }
+    } else if (inputs.command) {
+      command = inputs.command as TCommand;
+    }
+
+    const context: Context<TConfig, TEnv, TCommand, TSupportedEvents> = {
       eventName: inputs.eventName as TSupportedEvents,
       payload: inputs.eventPayload,
+      command: command,
       octokit: new customOctokit({ auth: inputs.authToken }),
       config: config,
       env: env,
@@ -109,7 +124,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents
 
     try {
       const result = await handler(context);
-      return ctx.json({ stateId: inputs.stateId, output: result });
+      return ctx.json({ stateId: inputs.stateId, output: result ?? {} });
     } catch (error) {
       console.error(error);
 

@@ -10,6 +10,9 @@ import { customOctokit } from "./octokit";
 import { sanitizeMetadata } from "./util";
 import { verifySignature } from "./signature";
 import { KERNEL_PUBLIC_KEY } from "./constants";
+import { jsonType } from "./types/util";
+import { commandCallSchema } from "./types/command";
+import { HandlerReturn } from "./types/sdk";
 
 config();
 
@@ -18,21 +21,27 @@ interface Options {
   postCommentOnError?: boolean;
   settingsSchema?: TAnySchema;
   envSchema?: TAnySchema;
+  commandSchema?: TAnySchema;
   kernelPublicKey?: string;
+  /**
+   * @deprecated This disables signature verification - only for local development
+   */
+  bypassSignatureVerification?: boolean;
 }
 
 const inputSchema = T.Object({
   stateId: T.String(),
   eventName: T.String(),
-  eventPayload: T.String(),
+  eventPayload: jsonType(T.Record(T.String(), T.Any())),
+  command: jsonType(commandCallSchema),
   authToken: T.String(),
-  settings: T.String(),
+  settings: jsonType(T.Record(T.String(), T.Any())),
   ref: T.String(),
   signature: T.String(),
 });
 
-export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
-  handler: (context: Context<TConfig, TEnv, TSupportedEvents>) => Promise<Record<string, unknown> | undefined>,
+export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCommand = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
+  handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => HandlerReturn,
   options?: Options
 ) {
   const pluginOptions = {
@@ -40,12 +49,21 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TSu
     postCommentOnError: options?.postCommentOnError ?? true,
     settingsSchema: options?.settingsSchema,
     envSchema: options?.envSchema,
+    commandSchema: options?.commandSchema,
     kernelPublicKey: options?.kernelPublicKey ?? KERNEL_PUBLIC_KEY,
+    bypassSignatureVerification: options?.bypassSignatureVerification || false,
   };
 
   const pluginGithubToken = process.env.PLUGIN_GITHUB_TOKEN;
   if (!pluginGithubToken) {
     core.setFailed("Error: PLUGIN_GITHUB_TOKEN env is not set");
+    return;
+  }
+
+  const body = github.context.payload.inputs;
+  const signature = body.signature;
+  if (!pluginOptions.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, body, signature))) {
+    core.setFailed(`Error: Invalid signature`);
     return;
   }
 
@@ -57,22 +75,17 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TSu
     return;
   }
   const inputs = Value.Decode(inputSchema, inputPayload);
-  const signature = inputs.signature;
-  if (!(await verifySignature(pluginOptions.kernelPublicKey, inputs, signature))) {
-    core.setFailed(`Error: Invalid signature`);
-    return;
-  }
 
   let config: TConfig;
   if (pluginOptions.settingsSchema) {
     try {
-      config = Value.Decode(pluginOptions.settingsSchema, Value.Default(pluginOptions.settingsSchema, JSON.parse(inputs.settings)));
+      config = Value.Decode(pluginOptions.settingsSchema, Value.Default(pluginOptions.settingsSchema, inputs.settings));
     } catch (e) {
-      console.dir(...Value.Errors(pluginOptions.settingsSchema, JSON.parse(inputs.settings)), { depth: null });
+      console.dir(...Value.Errors(pluginOptions.settingsSchema, inputs.settings), { depth: null });
       throw e;
     }
   } else {
-    config = JSON.parse(inputs.settings) as TConfig;
+    config = inputs.settings as TConfig;
   }
 
   let env: TEnv;
@@ -87,9 +100,22 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TSu
     env = process.env as TEnv;
   }
 
-  const context: Context<TConfig, TEnv, TSupportedEvents> = {
+  let command: TCommand | null = null;
+  if (inputs.command && pluginOptions.commandSchema) {
+    try {
+      command = Value.Decode(pluginOptions.commandSchema, Value.Default(pluginOptions.commandSchema, inputs.command));
+    } catch (e) {
+      console.dir(...Value.Errors(pluginOptions.commandSchema, inputs.command), { depth: null });
+      throw e;
+    }
+  } else if (inputs.command) {
+    command = inputs.command as TCommand;
+  }
+
+  const context: Context<TConfig, TEnv, TCommand, TSupportedEvents> = {
     eventName: inputs.eventName as TSupportedEvents,
-    payload: JSON.parse(inputs.eventPayload),
+    payload: inputs.eventPayload,
+    command: command,
     octokit: new customOctokit({ auth: inputs.authToken }),
     config: config,
     env: env,
@@ -138,7 +164,7 @@ function getGithubWorkflowRunUrl() {
   return `${github.context.payload.repository?.html_url}/actions/runs/${github.context.runId}`;
 }
 
-async function returnDataToKernel(repoToken: string, stateId: string, output: object | undefined) {
+async function returnDataToKernel(repoToken: string, stateId: string, output: HandlerReturn) {
   const octokit = new customOctokit({ auth: repoToken });
   await octokit.rest.repos.createDispatchEvent({
     owner: github.context.repo.owner,

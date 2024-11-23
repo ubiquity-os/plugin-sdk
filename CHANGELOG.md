@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.0](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.11...v1.1.0) (2024-11-23)
+
+
+### Features
+
+* command interface ([eeae4e6](https://github.com/ubiquity-os/plugin-sdk/commit/eeae4e61c81c314f1b03dfc0821823e56b80bbb5))
+* export octokit ([0a99120](https://github.com/ubiquity-os/plugin-sdk/commit/0a99120fa059e2f7530cb25a5ea56969a17f4212))
+* manifest commands object ([96517a9](https://github.com/ubiquity-os/plugin-sdk/commit/96517a9a32719302cf998394941390c93d5f6aa9))
+* typebox peer dependency ([eba4f6c](https://github.com/ubiquity-os/plugin-sdk/commit/eba4f6c279a1e515abdb81963e34bf7f68b72ae0))
+* update handler return type ([becefc3](https://github.com/ubiquity-os/plugin-sdk/commit/becefc3666cde17ed45a92f3eba4bffdc0d698ed))
+
+
+### Bug Fixes
+
+* bun lockfile ([ac96198](https://github.com/ubiquity-os/plugin-sdk/commit/ac96198f839addf50d7b07c7f6623a021dec21fa))
+* bypassSignatureVerification ([96449e0](https://github.com/ubiquity-os/plugin-sdk/commit/96449e0b06fd1e027d32d198a9599ab4ca0fbf3c))
+* empty strings ([0150ded](https://github.com/ubiquity-os/plugin-sdk/commit/0150ded6a6089dd0e5b5732b88f510f87e640800))
+* export octokit ([ae84bef](https://github.com/ubiquity-os/plugin-sdk/commit/ae84beffc9ef943a42bee1e41d933dada002d1bc))
+
 ## [1.0.11](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.10...v1.0.11) (2024-11-10)
 
 

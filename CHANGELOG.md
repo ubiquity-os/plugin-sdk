@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/ubiquity-os/plugin-sdk/compare/v1.1.0...v1.1.1) (2024-12-03)
+
+
+### Bug Fixes
+
+* refactor getPluginOptions function and default kernel public key ([49d234e](https://github.com/ubiquity-os/plugin-sdk/commit/49d234e98aa72f2f79c92a56ffbf0c14861030ee))
+
 ## [1.1.0](https://github.com/ubiquity-os/plugin-sdk/compare/v1.0.11...v1.1.0) (2024-11-23)
 
 

@@ -1,30 +1,17 @@
 import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
-import { TAnySchema, Type as T } from "@sinclair/typebox";
+import { Type as T } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
-import { LOG_LEVEL, LogLevel, LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
+import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { Hono } from "hono";
 import { env as honoEnv } from "hono/adapter";
 import { HTTPException } from "hono/http-exception";
 import { postComment } from "./comment";
-import { KERNEL_PUBLIC_KEY } from "./constants";
 import { Context } from "./context";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { Manifest } from "./types/manifest";
 import { HandlerReturn } from "./types/sdk";
-
-interface Options {
-  kernelPublicKey?: string;
-  logLevel?: LogLevel;
-  postCommentOnError?: boolean;
-  settingsSchema?: TAnySchema;
-  envSchema?: TAnySchema;
-  commandSchema?: TAnySchema;
-  /**
-   * @deprecated This disables signature verification - only for local development
-   */
-  bypassSignatureVerification?: boolean;
-}
+import { getPluginOptions, Options } from "./util";
 
 const inputSchema = T.Object({
   stateId: T.String(),
@@ -42,15 +29,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
   manifest: Manifest,
   options?: Options
 ) {
-  const pluginOptions = {
-    kernelPublicKey: options?.kernelPublicKey ?? KERNEL_PUBLIC_KEY,
-    logLevel: options?.logLevel ?? LOG_LEVEL.INFO,
-    postCommentOnError: options?.postCommentOnError ?? true,
-    settingsSchema: options?.settingsSchema,
-    envSchema: options?.envSchema,
-    commandSchema: options?.commandSchema,
-    bypassSignatureVerification: options?.bypassSignatureVerification || false,
-  };
+  const pluginOptions = getPluginOptions(options);
 
   const app = new Hono();
 

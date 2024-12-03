@@ -65,6 +65,8 @@ export default tsEslint.config({
     "sonarjs/no-element-overwrite": "error",
     "sonarjs/no-identical-conditions": "error",
     "sonarjs/no-identical-expressions": "error",
+    "sonarjs/new-cap": "off",
+    "sonarjs/prefer-nullish-coalescing": "off",
     "@typescript-eslint/naming-convention": [
       "error",
       {

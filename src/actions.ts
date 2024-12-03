@@ -1,33 +1,19 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
-import { TAnySchema, Type as T } from "@sinclair/typebox";
+import { Type as T } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
-import { LOG_LEVEL, LogLevel, LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
+import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { config } from "dotenv";
 import { Context } from "./context";
 import { customOctokit } from "./octokit";
-import { sanitizeMetadata } from "./util";
 import { verifySignature } from "./signature";
-import { KERNEL_PUBLIC_KEY } from "./constants";
-import { jsonType } from "./types/util";
 import { commandCallSchema } from "./types/command";
 import { HandlerReturn } from "./types/sdk";
+import { jsonType } from "./types/util";
+import { getPluginOptions, Options, sanitizeMetadata } from "./util";
 
 config();
-
-interface Options {
-  logLevel?: LogLevel;
-  postCommentOnError?: boolean;
-  settingsSchema?: TAnySchema;
-  envSchema?: TAnySchema;
-  commandSchema?: TAnySchema;
-  kernelPublicKey?: string;
-  /**
-   * @deprecated This disables signature verification - only for local development
-   */
-  bypassSignatureVerification?: boolean;
-}
 
 const inputSchema = T.Object({
   stateId: T.String(),
@@ -44,15 +30,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
   handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => HandlerReturn,
   options?: Options
 ) {
-  const pluginOptions = {
-    logLevel: options?.logLevel ?? LOG_LEVEL.INFO,
-    postCommentOnError: options?.postCommentOnError ?? true,
-    settingsSchema: options?.settingsSchema,
-    envSchema: options?.envSchema,
-    commandSchema: options?.commandSchema,
-    kernelPublicKey: options?.kernelPublicKey ?? KERNEL_PUBLIC_KEY,
-    bypassSignatureVerification: options?.bypassSignatureVerification || false,
-  };
+  const pluginOptions = getPluginOptions(options);
 
   const pluginGithubToken = process.env.PLUGIN_GITHUB_TOKEN;
   if (!pluginGithubToken) {

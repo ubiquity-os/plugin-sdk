@@ -2,9 +2,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from "@jes
 import { EmitterWebhookEventName } from "@octokit/webhooks";
 import * as crypto from "crypto";
 import { http, HttpResponse } from "msw";
+import { KERNEL_PUBLIC_KEY } from "../src/constants";
 import { Context } from "../src/context";
 import { createPlugin } from "../src/server";
 import { signPayload } from "../src/signature";
+import { getPluginOptions } from "../src/util";
 import { server } from "./__mocks__/node";
 import issueCommented from "./__mocks__/requests/issue-comment-post.json";
 import { CommandCall } from "../src/types/command";
@@ -403,5 +405,14 @@ describe("SDK actions tests", () => {
         output: JSON.stringify({ event: issueCommentedEvent.eventName }),
       },
     });
+  });
+
+  it("Should return the proper Kernel Key", () => {
+    let options = getPluginOptions({ kernelPublicKey: "" });
+    expect(options.kernelPublicKey).toEqual(KERNEL_PUBLIC_KEY);
+    options = getPluginOptions({});
+    expect(options.kernelPublicKey).toEqual(KERNEL_PUBLIC_KEY);
+    options = getPluginOptions({ kernelPublicKey: "1234" });
+    expect(options.kernelPublicKey).toEqual("1234");
   });
 });

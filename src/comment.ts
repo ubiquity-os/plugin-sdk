@@ -1,5 +1,6 @@
 import { Context } from "./context";
 import { LogReturn, Metadata } from "@ubiquity-os/ubiquity-os-logger";
+import { getPluginName, getRunUrl, getVersion } from "./helpers/get-run-info";
 import { sanitizeMetadata } from "./util";
 
 const HEADER_NAME = "UbiquityOS";
@@ -22,7 +23,7 @@ export async function postComment(context: Context, message: LogReturn | Error) 
   }
 
   if ("repository" in context.payload && context.payload.repository?.owner?.login) {
-    const body = createStructuredMetadataWithMessage(context, message);
+    const body = await createStructuredMetadataWithMessage(context, message);
     await context.octokit.rest.issues.createComment({
       owner: context.payload.repository.owner.login,
       repo: context.payload.repository.name,
@@ -34,13 +35,11 @@ export async function postComment(context: Context, message: LogReturn | Error) 
   }
 }
 
-function createStructuredMetadataWithMessage(context: Context, message: LogReturn | Error) {
+async function createStructuredMetadataWithMessage(context: Context, message: LogReturn | Error) {
   let logMessage;
   let callingFnName;
-  let logTier;
   let instigatorName;
   let metadata: Metadata;
-  const url = "myUrl";
 
   if (message instanceof Error) {
     metadata = {
@@ -48,11 +47,9 @@ function createStructuredMetadataWithMessage(context: Context, message: LogRetur
       name: message.name,
       stack: message.stack,
     };
-    logTier = "error";
     callingFnName = message.stack?.split("\n")[2]?.match(/at (\S+)/)?.[1] ?? "anonymous";
   } else if (message.metadata) {
     logMessage = message.logMessage;
-    logTier = message.logMessage.level;
     metadata = message.metadata;
 
     if (metadata.stack || metadata.error) {
@@ -71,7 +68,7 @@ function createStructuredMetadataWithMessage(context: Context, message: LogRetur
     instigatorName = context.payload.sender?.login || HEADER_NAME;
   }
 
-  const ubiquityMetadataHeader = `<!-- ${HEADER_NAME} - ${instigatorName} - ${logTier} - ${url} - ${callingFnName}`;
+  const ubiquityMetadataHeader = `<!-- ${HEADER_NAME} - ${await getPluginName()} - @${instigatorName} - ${getRunUrl()} - ${callingFnName} - ${await getVersion(context)}`;
 
   let metadataSerialized: string;
   const metadataSerializedVisible = ["```json", jsonPretty, "```"].join("\n");
@@ -84,8 +81,6 @@ function createStructuredMetadataWithMessage(context: Context, message: LogRetur
     // otherwise we want to hide it
     metadataSerialized = metadataSerializedHidden;
   }
-  console.log(ubiquityMetadataHeader);
-  console.log(metadataSerialized);
 
   if (message instanceof Error) {
     return `${context.logger.error(message.message).logMessage.diff}\n\n${metadataSerialized}\n`;

@@ -107,9 +107,9 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     } catch (error) {
       console.error(error);
 
-      let loggerError: LogReturn | null;
+      let loggerError: LogReturn | Error | null;
       if (error instanceof Error) {
-        loggerError = context.logger.error(`Error: ${error}`, { error: error });
+        loggerError = error;
       } else if (error instanceof LogReturn) {
         loggerError = error;
       } else {

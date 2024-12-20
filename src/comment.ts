@@ -1,6 +1,6 @@
-import { Context } from "./context";
 import { LogReturn, Metadata } from "@ubiquity-os/ubiquity-os-logger";
-import { getPluginName, getRunUrl, getVersion } from "./helpers/get-run-info";
+import { Context } from "./context";
+import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { sanitizeMetadata } from "./util";
 
 const HEADER_NAME = "UbiquityOS";
@@ -67,8 +67,10 @@ async function createStructuredMetadataWithMessage(context: Context, message: Lo
   } else {
     instigatorName = context.payload.sender?.login || HEADER_NAME;
   }
+  const runUrl = PluginRuntimeInfo.getInstance().runUrl;
+  const version = await PluginRuntimeInfo.getInstance().version;
 
-  const ubiquityMetadataHeader = `<!-- ${HEADER_NAME} - ${await getPluginName()} - @${instigatorName} - ${getRunUrl()} - ${callingFnName} - ${await getVersion(context)}`;
+  const ubiquityMetadataHeader = `<!-- ${HEADER_NAME} - @${instigatorName} - ${runUrl} - ${callingFnName} - ${version}`;
 
   let metadataSerialized: string;
   const metadataSerializedVisible = ["```json", jsonPretty, "```"].join("\n");

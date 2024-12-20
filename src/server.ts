@@ -7,6 +7,7 @@ import { env as honoEnv } from "hono/adapter";
 import { HTTPException } from "hono/http-exception";
 import { postComment } from "./comment";
 import { Context } from "./context";
+import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { Manifest } from "./types/manifest";
@@ -78,6 +79,16 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     } else {
       env = ctx.env as TEnv;
     }
+
+    const workerUrl = new URL(inputs.ref).origin;
+    let workerName;
+
+    if (workerUrl.includes("localhost")) {
+      workerName = "localhost";
+    } else {
+      workerName = `${workerUrl.split("//")[1].split(".")[0]}`;
+    }
+    PluginRuntimeInfo.getInstance({ ...env, CF_WORKER_NAME: workerName });
 
     let command: TCommand | null = null;
     if (inputs.command && pluginOptions.commandSchema) {

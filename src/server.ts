@@ -88,7 +88,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     } else {
       workerName = `${workerUrl.split("//")[1].split(".")[0]}`;
     }
-    PluginRuntimeInfo.getInstance({ ...env, CF_WORKER_NAME: workerName });
+    PluginRuntimeInfo.getInstance({ ...env, CLOUFLARE_WORKER_NAME: workerName });
 
     let command: TCommand | null = null;
     if (inputs.command && pluginOptions.commandSchema) {

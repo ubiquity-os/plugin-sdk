@@ -24,11 +24,11 @@ export abstract class PluginRuntimeInfo {
 
 export class CfRuntimeInfo extends PluginRuntimeInfo {
   public get version(): Promise<string> {
-    return Promise.resolve(this._env.CF_VERSION_METADATA ?? "[missing CF_VERSION_METADATA]");
+    return Promise.resolve(this._env.CF_VERSION_METADATA ?? "CF_VERSION_METADATA");
   }
   public get runUrl(): string {
-    const accountId = this._env.CF_ACCOUNT_ID;
-    const workerName = this._env.CF_WORKER_NAME;
+    const accountId = this._env.CLOUDFLARE_ACCOUNT_ID ?? "<missing-cloudflare-account-id>";
+    const workerName = this._env.CLOUFLARE_WORKER_NAME;
     const toTime = Date.now() + 60000;
     const fromTime = Date.now() - 60000;
     const timeParam = encodeURIComponent(`{"type":"absolute","to":${toTime},"from":${fromTime}}`);

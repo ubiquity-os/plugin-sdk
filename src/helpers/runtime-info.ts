@@ -3,7 +3,7 @@ import { getRuntimeKey } from "hono/adapter";
 
 export abstract class PluginRuntimeInfo {
   private static _instance: PluginRuntimeInfo | null = null;
-  protected _env: Record<string, string> = {};
+  protected _env: Record<string, unknown> = {};
 
   protected constructor(env?: Record<string, string>) {
     if (env) {
@@ -24,7 +24,8 @@ export abstract class PluginRuntimeInfo {
 
 export class CfRuntimeInfo extends PluginRuntimeInfo {
   public get version(): Promise<string> {
-    return Promise.resolve(this._env.CLOUDFLARE_VERSION_METADATA ?? "CLOUDFLARE_VERSION_METADATA");
+    // See also https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/
+    return Promise.resolve((this._env.CLOUDFLARE_VERSION_METADATA as { id: string }).id ?? "CLOUDFLARE_VERSION_METADATA");
   }
   public get runUrl(): string {
     const accountId = this._env.CLOUDFLARE_ACCOUNT_ID ?? "<missing-cloudflare-account-id>";

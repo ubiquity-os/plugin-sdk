@@ -5,13 +5,14 @@ import { Type as T } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
 import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { config } from "dotenv";
+import { postComment } from "./comment";
 import { Context } from "./context";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { commandCallSchema } from "./types/command";
 import { HandlerReturn } from "./types/sdk";
 import { jsonType } from "./types/util";
-import { getPluginOptions, Options, sanitizeMetadata } from "./util";
+import { getPluginOptions, Options } from "./util";
 
 config();
 
@@ -120,26 +121,9 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     }
 
     if (pluginOptions.postCommentOnError && loggerError) {
-      await postErrorComment(context, loggerError);
+      await postComment(context, loggerError);
     }
   }
-}
-
-async function postErrorComment(context: Context, error: LogReturn) {
-  if ("issue" in context.payload && context.payload.repository?.owner?.login) {
-    await context.octokit.rest.issues.createComment({
-      owner: context.payload.repository.owner.login,
-      repo: context.payload.repository.name,
-      issue_number: context.payload.issue.number,
-      body: `${error.logMessage.diff}\n<!--\n${getGithubWorkflowRunUrl()}\n${sanitizeMetadata(error.metadata)}\n-->`,
-    });
-  } else {
-    context.logger.info("Cannot post error comment because issue is not found in the payload");
-  }
-}
-
-function getGithubWorkflowRunUrl() {
-  return `${github.context.payload.repository?.html_url}/actions/runs/${github.context.runId}`;
 }
 
 async function returnDataToKernel(repoToken: string, stateId: string, output: HandlerReturn) {

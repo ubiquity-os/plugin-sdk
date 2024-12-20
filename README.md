@@ -17,6 +17,10 @@ The `createActionsPlugin` function allows users to create plugins that will be a
 
 The `createPlugin` function enables users to create a plugin that will run on Cloudflare Workers environment.
 
+### `postComment`
+
+The `postComment` function enables users to easily post a comment to an issue, a pull-request or even a conversation.
+
 ## Getting Started
 
 To set up the project locally, `bun` is the preferred package manager.

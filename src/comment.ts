@@ -8,7 +8,7 @@ const HEADER_NAME = "UbiquityOS";
 /**
  * Posts a comment on a GitHub issue if the issue exists in the context payload, embedding structured metadata to it.
  */
-export async function postComment(context: Context, message: LogReturn | Error) {
+export async function postComment(context: Context, message: LogReturn | Error, raw = false) {
   let issueNumber;
 
   if ("issue" in context.payload) {
@@ -23,7 +23,7 @@ export async function postComment(context: Context, message: LogReturn | Error) 
   }
 
   if ("repository" in context.payload && context.payload.repository?.owner?.login) {
-    const body = await createStructuredMetadataWithMessage(context, message);
+    const body = await createStructuredMetadataWithMessage(context, message, raw);
     await context.octokit.rest.issues.createComment({
       owner: context.payload.repository.owner.login,
       repo: context.payload.repository.name,
@@ -35,7 +35,7 @@ export async function postComment(context: Context, message: LogReturn | Error) 
   }
 }
 
-async function createStructuredMetadataWithMessage(context: Context, message: LogReturn | Error) {
+async function createStructuredMetadataWithMessage(context: Context, message: LogReturn | Error, raw = false) {
   let logMessage;
   let callingFnName;
   let instigatorName;
@@ -85,9 +85,10 @@ async function createStructuredMetadataWithMessage(context: Context, message: Lo
   }
 
   if (message instanceof Error) {
-    return `${context.logger.error(message.message).logMessage.diff}\n\n${metadataSerialized}\n`;
+    const content = context.logger.error(message.message).logMessage;
+    return `${raw ? content.raw : content.diff}\n\n${metadataSerialized}\n`;
   }
 
   // Add carriage returns to avoid any formatting issue
-  return `${logMessage?.diff}\n\n${metadataSerialized}\n`;
+  return `${raw ? logMessage?.raw : logMessage?.diff}\n\n${metadataSerialized}\n`;
 }

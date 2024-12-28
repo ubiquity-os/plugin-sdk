@@ -25,7 +25,7 @@ export abstract class PluginRuntimeInfo {
 export class CfRuntimeInfo extends PluginRuntimeInfo {
   public get version(): Promise<string> {
     // See also https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/
-    return Promise.resolve((this._env.CLOUDFLARE_VERSION_METADATA as { id: string }).id ?? "CLOUDFLARE_VERSION_METADATA");
+    return Promise.resolve((this._env.CLOUDFLARE_VERSION_METADATA as { id: string })?.id ?? "CLOUDFLARE_VERSION_METADATA");
   }
   public get runUrl(): string {
     const accountId = this._env.CLOUDFLARE_ACCOUNT_ID ?? "<missing-cloudflare-account-id>";

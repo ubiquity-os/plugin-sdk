@@ -19,7 +19,7 @@ The `createPlugin` function enables users to create a plugin that will run on Cl
 
 ### `postComment`
 
-The `postComment` function enables users to easily post a comment to an issue, a pull-request or even a conversation.
+The `postComment` function enables users to easily post a comment to an issue, a pull-request, or a pull request review thread.
 
 ## Getting Started
 

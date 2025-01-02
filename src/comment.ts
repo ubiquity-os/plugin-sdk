@@ -70,7 +70,7 @@ async function createStructuredMetadataWithMessage(context: Context, message: Lo
   const runUrl = PluginRuntimeInfo.getInstance().runUrl;
   const version = await PluginRuntimeInfo.getInstance().version;
 
-  const ubiquityMetadataHeader = `<!-- ${HEADER_NAME} - @${instigatorName} - ${runUrl} - ${callingFnName} - ${version}`;
+  const ubiquityMetadataHeader = `<!-- ${HEADER_NAME} - ${runUrl} - ${callingFnName} - ${version} - @${instigatorName}`;
 
   let metadataSerialized: string;
   const metadataSerializedVisible = ["```json", jsonPretty, "```"].join("\n");

@@ -88,7 +88,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     } else {
       workerName = `${workerUrl.split("//")[1].split(".")[0]}`;
     }
-    PluginRuntimeInfo.getInstance({ ...env, CLOUFLARE_WORKER_NAME: workerName });
+    PluginRuntimeInfo.getInstance({ ...env, CLOUDFLARE_WORKER_NAME: workerName });
 
     let command: TCommand | null = null;
     if (inputs.command && pluginOptions.commandSchema) {
@@ -119,9 +119,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       console.error(error);
 
       let loggerError: LogReturn | Error | null;
-      if (error instanceof Error) {
-        loggerError = error;
-      } else if (error instanceof LogReturn) {
+      if (error instanceof Error || error instanceof LogReturn) {
         loggerError = error;
       } else {
         loggerError = context.logger.error(`Error: ${error}`);

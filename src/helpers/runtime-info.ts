@@ -29,7 +29,7 @@ export class CfRuntimeInfo extends PluginRuntimeInfo {
   }
   public get runUrl(): string {
     const accountId = this._env.CLOUDFLARE_ACCOUNT_ID ?? "<missing-cloudflare-account-id>";
-    const workerName = this._env.CLOUFLARE_WORKER_NAME;
+    const workerName = this._env.CLOUDFLARE_WORKER_NAME;
     const toTime = Date.now() + 60000;
     const fromTime = Date.now() - 60000;
     const timeParam = encodeURIComponent(`{"type":"absolute","to":${toTime},"from":${fromTime}}`);

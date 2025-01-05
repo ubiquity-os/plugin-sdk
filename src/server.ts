@@ -80,7 +80,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       env = ctx.env as TEnv;
     }
 
-    const workerName = new URL(inputs.ref).hostname;
+    const workerName = new URL(inputs.ref).hostname.split(".")[0];
     PluginRuntimeInfo.getInstance({ ...env, CLOUDFLARE_WORKER_NAME: workerName });
 
     let command: TCommand | null = null;

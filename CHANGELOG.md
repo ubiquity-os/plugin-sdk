@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0](https://github.com/ubiquity-os/plugin-sdk/compare/v1.1.1...v2.0.0) (2025-01-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* comments can be reused on posting
+
+### Features
+
+* comments can be reused on posting ([81c706c](https://github.com/ubiquity-os/plugin-sdk/commit/81c706c2629ff25bd5eca415596de269da07637d))
+* runtime info populated for worker and node environments ([c8f45f0](https://github.com/ubiquity-os/plugin-sdk/commit/c8f45f04715e7abaca6e1c47794c647cb9b526ac))
+
 ## [1.1.1](https://github.com/ubiquity-os/plugin-sdk/compare/v1.1.0...v1.1.1) (2024-12-03)
 
 

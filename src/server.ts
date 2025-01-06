@@ -7,6 +7,7 @@ import { env as honoEnv } from "hono/adapter";
 import { HTTPException } from "hono/http-exception";
 import { postComment } from "./comment";
 import { Context } from "./context";
+import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { Manifest } from "./types/manifest";
@@ -79,6 +80,9 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       env = ctx.env as TEnv;
     }
 
+    const workerName = new URL(inputs.ref).hostname.split(".")[0];
+    PluginRuntimeInfo.getInstance({ ...env, CLOUDFLARE_WORKER_NAME: workerName });
+
     let command: TCommand | null = null;
     if (inputs.command && pluginOptions.commandSchema) {
       try {
@@ -107,10 +111,8 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     } catch (error) {
       console.error(error);
 
-      let loggerError: LogReturn | null;
-      if (error instanceof Error) {
-        loggerError = context.logger.error(`Error: ${error}`, { error: error });
-      } else if (error instanceof LogReturn) {
+      let loggerError: LogReturn | Error | null;
+      if (error instanceof Error || error instanceof LogReturn) {
         loggerError = error;
       } else {
         loggerError = context.logger.error(`Error: ${error}`);

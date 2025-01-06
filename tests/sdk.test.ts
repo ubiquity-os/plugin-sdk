@@ -219,7 +219,7 @@ describe("SDK worker tests", () => {
 ! test error
 \`\`\`
 
-<!-- UbiquityOS - @gentlementlegen - http://localhost - handler - 1234
+<!-- UbiquityOS - http://localhost - handler - 1234 - @gentlementlegen
 {
   "caller": "handler"
 }

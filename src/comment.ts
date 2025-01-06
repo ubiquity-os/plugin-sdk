@@ -78,14 +78,14 @@ async function createStructuredMetadataWithMessage(context: Context, message: Lo
       stack: message.stack,
     };
     callingFnName = message.stack?.split("\n")[2]?.match(/at (\S+)/)?.[1] ?? "anonymous";
+    logMessage = context.logger.error(message.message).logMessage;
   } else if (message.metadata) {
+    metadata = {
+      message: message.metadata.message,
+      stack: message.metadata.stack || message.metadata.error?.stack,
+      caller: message.metadata.caller || message.metadata.error?.stack?.split("\n")[2]?.match(/at (\S+)/)?.[1],
+    };
     logMessage = message.logMessage;
-    metadata = message.metadata;
-
-    if (metadata.stack || metadata.error) {
-      metadata.stack = metadata.stack || metadata.error?.stack;
-      metadata.caller = metadata.caller || metadata.error?.stack?.split("\n")[2]?.match(/at (\S+)/)?.[1];
-    }
     callingFnName = metadata.caller;
   } else {
     metadata = { ...message };
@@ -100,7 +100,7 @@ async function createStructuredMetadataWithMessage(context: Context, message: Lo
   const runUrl = PluginRuntimeInfo.getInstance().runUrl;
   const version = await PluginRuntimeInfo.getInstance().version;
 
-  const ubiquityMetadataHeader = `<!-- ${HEADER_NAME} - @${instigatorName} - ${runUrl} - ${callingFnName} - ${version}`;
+  const ubiquityMetadataHeader = `<!-- ${HEADER_NAME} - ${runUrl} - ${callingFnName} - ${version} - @${instigatorName}`;
 
   let metadataSerialized: string;
   const metadataSerializedVisible = ["```json", jsonPretty, "```"].join("\n");
@@ -112,11 +112,6 @@ async function createStructuredMetadataWithMessage(context: Context, message: Lo
   } else {
     // otherwise we want to hide it
     metadataSerialized = metadataSerializedHidden;
-  }
-
-  if (message instanceof Error) {
-    const content = context.logger.error(message.message).logMessage;
-    return `${options.raw ? content.raw : content.diff}\n\n${metadataSerialized}\n`;
   }
 
   // Add carriage returns to avoid any formatting issue

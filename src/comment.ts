@@ -5,10 +5,30 @@ import { sanitizeMetadata } from "./util";
 
 const HEADER_NAME = "UbiquityOS";
 
+export interface CommentOptions {
+  /*
+   * Should the comment be posted as send within the log, without adding any sort of formatting.
+   */
+  raw?: boolean;
+  /*
+   * Should the previously posted comment be reused instead of posting a new comment.
+   */
+  updateComment?: boolean;
+}
+
+export type PostComment = {
+  (context: Context, message: LogReturn | Error, options?: CommentOptions): Promise<void>;
+  lastCommentId?: number;
+};
+
 /**
  * Posts a comment on a GitHub issue if the issue exists in the context payload, embedding structured metadata to it.
  */
-export async function postComment(context: Context, message: LogReturn | Error, raw = false) {
+export const postComment: PostComment = async function (
+  context: Context,
+  message: LogReturn | Error,
+  options: CommentOptions = { updateComment: true, raw: false }
+) {
   let issueNumber;
 
   if ("issue" in context.payload) {
@@ -23,19 +43,29 @@ export async function postComment(context: Context, message: LogReturn | Error, 
   }
 
   if ("repository" in context.payload && context.payload.repository?.owner?.login) {
-    const body = await createStructuredMetadataWithMessage(context, message, raw);
-    await context.octokit.rest.issues.createComment({
-      owner: context.payload.repository.owner.login,
-      repo: context.payload.repository.name,
-      issue_number: issueNumber,
-      body: body,
-    });
+    const body = await createStructuredMetadataWithMessage(context, message, options);
+    if (options.updateComment && postComment.lastCommentId) {
+      await context.octokit.rest.issues.updateComment({
+        owner: context.payload.repository.owner.login,
+        repo: context.payload.repository.name,
+        comment_id: postComment.lastCommentId,
+        body: body,
+      });
+    } else {
+      const commentData = await context.octokit.rest.issues.createComment({
+        owner: context.payload.repository.owner.login,
+        repo: context.payload.repository.name,
+        issue_number: issueNumber,
+        body: body,
+      });
+      postComment.lastCommentId = commentData.data.id;
+    }
   } else {
     context.logger.info("Cannot post comment because repository is not found in the payload.", { payload: context.payload });
   }
-}
+};
 
-async function createStructuredMetadataWithMessage(context: Context, message: LogReturn | Error, raw = false) {
+async function createStructuredMetadataWithMessage(context: Context, message: LogReturn | Error, options: CommentOptions) {
   let logMessage;
   let callingFnName;
   let instigatorName;
@@ -85,5 +115,5 @@ async function createStructuredMetadataWithMessage(context: Context, message: Lo
   }
 
   // Add carriage returns to avoid any formatting issue
-  return `${raw ? logMessage?.raw : logMessage?.diff}\n\n${metadataSerialized}\n`;
+  return `${options.raw ? logMessage?.raw : logMessage?.diff}\n\n${metadataSerialized}\n`;
 }

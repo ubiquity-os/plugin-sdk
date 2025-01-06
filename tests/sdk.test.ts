@@ -153,6 +153,18 @@ describe("SDK worker tests", () => {
     expect(res.status).toEqual(400);
   });
   it("Should handle thrown errors", async () => {
+    jest.unstable_mockModule(githubActionImportPath, () => ({
+      default: {
+        context: {
+          runId: "1",
+          payload: {
+            inputs: {},
+          },
+          repo: "repo",
+          sha: "1234",
+        },
+      },
+    }));
     const createComment = jest.fn();
     server.use(
       http.post(
@@ -187,7 +199,7 @@ describe("SDK worker tests", () => {
       issueCommentedEvent.eventPayload,
       { shouldFail: true },
       "test",
-      "main",
+      "http://localhost:4000",
       null
     );
 
@@ -207,19 +219,27 @@ describe("SDK worker tests", () => {
 ! test error
 \`\`\`
 
-<!-- Ubiquity - undefined -  - undefined
+<!-- UbiquityOS - http://localhost - createPlugin.name - 1234 - @gentlementlegen
 {
-  "caller": "handler"
+  "caller": "createPlugin.name"
 }
 -->
 `,
     });
   });
   it("Should accept correct request", async () => {
-    const inputs = await getWorkerInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: false }, "test", "main", {
-      name: "test",
-      parameters: { param1: "test" },
-    });
+    const inputs = await getWorkerInputs(
+      "stateId",
+      issueCommentedEvent.eventName,
+      issueCommentedEvent.eventPayload,
+      { shouldFail: false },
+      "test",
+      "http://localhost:4000",
+      {
+        name: "test",
+        parameters: { param1: "test" },
+      }
+    );
 
     const res = await app.request("/", {
       headers: {
@@ -250,12 +270,14 @@ describe("SDK actions tests", () => {
       parameters: { param1: "test" },
     });
     jest.unstable_mockModule(githubActionImportPath, () => ({
+      default: {},
       context: {
         runId: "1",
         payload: {
           inputs: githubInputs,
         },
         repo: repo,
+        sha: "1234",
       },
     }));
     const setOutput = jest.fn();
@@ -308,6 +330,7 @@ describe("SDK actions tests", () => {
     const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", null);
 
     jest.unstable_mockModule("@actions/github", () => ({
+      default: {},
       context: {
         runId: "1",
         payload: {
@@ -344,6 +367,7 @@ describe("SDK actions tests", () => {
     const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", null);
 
     jest.unstable_mockModule(githubActionImportPath, () => ({
+      default: {},
       context: {
         runId: "1",
         payload: {

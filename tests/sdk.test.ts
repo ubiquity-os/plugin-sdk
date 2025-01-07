@@ -219,7 +219,7 @@ describe("SDK worker tests", () => {
 ! test error
 \`\`\`
 
-<!-- UbiquityOS - http://localhost - createPlugin.name - 1234 - @gentlementlegen
+<!-- UbiquityOS - createPlugin.name - 1234 - @gentlementlegen - http://localhost
 {
   "caller": "createPlugin.name"
 }

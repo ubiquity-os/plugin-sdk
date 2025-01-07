@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.0...v2.0.1) (2025-01-07)
+
+
+### Bug Fixes
+
+* changed metadata header order ([0f8b8cf](https://github.com/ubiquity-os/plugin-sdk/commit/0f8b8cfded317ce1fff35c81d78cac3285b2d845))
+
 ## [2.0.0](https://github.com/ubiquity-os/plugin-sdk/compare/v1.1.1...v2.0.0) (2025-01-06)
 
 

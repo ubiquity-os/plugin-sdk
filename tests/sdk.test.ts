@@ -32,33 +32,7 @@ const sdkOctokitImportPath = "../src/octokit";
 const githubActionImportPath = "@actions/github";
 const githubCoreImportPath = "@actions/core";
 
-async function getWorkerInputs(
-  stateId: string,
-  eventName: string,
-  eventPayload: object,
-  settings: object,
-  authToken: string,
-  ref: string,
-  command: CommandCall | null
-) {
-  const inputs = {
-    stateId,
-    eventName,
-    eventPayload,
-    settings,
-    authToken,
-    ref,
-    command,
-  };
-  const signature = await signPayload(JSON.stringify(inputs), privateKey);
-
-  return {
-    ...inputs,
-    signature,
-  };
-}
-
-async function getWorkflowInputs(
+async function getInputs(
   stateId: string,
   eventName: string,
   eventPayload: object,
@@ -133,15 +107,7 @@ describe("SDK worker tests", () => {
     expect(res.status).toEqual(400);
   });
   it("Should deny POST request with invalid signature", async () => {
-    const inputs = await getWorkerInputs(
-      "stateId",
-      issueCommentedEvent.eventName,
-      issueCommentedEvent.eventPayload,
-      { shouldFail: false },
-      "test",
-      "main",
-      null
-    );
+    const inputs = await getInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: false }, "test", "main", null);
 
     const res = await app.request("/", {
       headers: {
@@ -193,7 +159,7 @@ describe("SDK worker tests", () => {
       { kernelPublicKey: publicKey }
     );
 
-    const inputs = await getWorkerInputs(
+    const inputs = await getInputs(
       "stateId",
       issueCommentedEvent.eventName,
       issueCommentedEvent.eventPayload,
@@ -228,7 +194,7 @@ describe("SDK worker tests", () => {
     });
   });
   it("Should accept correct request", async () => {
-    const inputs = await getWorkerInputs(
+    const inputs = await getInputs(
       "stateId",
       issueCommentedEvent.eventName,
       issueCommentedEvent.eventPayload,
@@ -265,7 +231,7 @@ describe("SDK actions tests", () => {
   };
 
   it("Should accept correct request", async () => {
-    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", {
+    const githubInputs = await getInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", {
       name: "test",
       parameters: { param1: "test" },
     });
@@ -327,7 +293,7 @@ describe("SDK actions tests", () => {
     });
   });
   it("Should deny invalid signature", async () => {
-    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", null);
+    const githubInputs = await getInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", null);
 
     jest.unstable_mockModule("@actions/github", () => ({
       default: {},
@@ -364,7 +330,7 @@ describe("SDK actions tests", () => {
     expect(setOutput).not.toHaveBeenCalled();
   });
   it("Should accept inputs in different order", async () => {
-    const githubInputs = await getWorkflowInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", null);
+    const githubInputs = await getInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", null);
 
     jest.unstable_mockModule(githubActionImportPath, () => ({
       default: {},

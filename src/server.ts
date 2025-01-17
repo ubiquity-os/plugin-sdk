@@ -1,5 +1,4 @@
 import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
-import { Type as T } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
 import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { Hono } from "hono";
@@ -10,22 +9,10 @@ import { Context } from "./context";
 import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
-import { commandCallSchema } from "./types/command";
+import { inputSchema } from "./types/input-schema";
 import { Manifest } from "./types/manifest";
 import { HandlerReturn } from "./types/sdk";
-import { jsonType } from "./types/util";
 import { getPluginOptions, Options } from "./util";
-
-const inputSchema = T.Object({
-  stateId: T.String(),
-  eventName: T.String(),
-  eventPayload: jsonType(T.Record(T.String(), T.Any())),
-  command: jsonType(commandCallSchema),
-  authToken: T.String(),
-  settings: jsonType(T.Record(T.String(), T.Any())),
-  ref: T.String(),
-  signature: T.String(),
-});
 
 export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
   handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => HandlerReturn,

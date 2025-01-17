@@ -10,17 +10,19 @@ import { Context } from "./context";
 import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
+import { commandCallSchema } from "./types/command";
 import { Manifest } from "./types/manifest";
 import { HandlerReturn } from "./types/sdk";
+import { jsonType } from "./types/util";
 import { getPluginOptions, Options } from "./util";
 
 const inputSchema = T.Object({
   stateId: T.String(),
   eventName: T.String(),
-  eventPayload: T.Record(T.String(), T.Any()),
-  command: T.Union([T.Null(), T.Object({ name: T.String(), parameters: T.Unknown() })]),
+  eventPayload: jsonType(T.Record(T.String(), T.Any())),
+  command: jsonType(commandCallSchema),
   authToken: T.String(),
-  settings: T.Record(T.String(), T.Any()),
+  settings: jsonType(T.Record(T.String(), T.Any())),
   ref: T.String(),
   signature: T.String(),
 });
@@ -49,11 +51,11 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       console.log(inputSchemaErrors, { depth: null });
       throw new HTTPException(400, { message: "Invalid body" });
     }
-    const inputs = Value.Decode(inputSchema, body);
-    const signature = inputs.signature;
-    if (!pluginOptions.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, inputs, signature))) {
+    const signature = body.signature;
+    if (!pluginOptions.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, body, signature))) {
       throw new HTTPException(400, { message: "Invalid signature" });
     }
+    const inputs = Value.Decode(inputSchema, body);
 
     let config: TConfig;
     if (pluginOptions.settingsSchema) {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.1...v2.0.2) (2025-01-17)
+
+
+### Bug Fixes
+
+* change decode for server payload to match action payload ([a67be1c](https://github.com/ubiquity-os/plugin-sdk/commit/a67be1c29c082a9502c59640f0ea3c367f145458))
+
 ## [2.0.1](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.0...v2.0.1) (2025-01-07)
 
 

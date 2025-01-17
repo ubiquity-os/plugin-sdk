@@ -1,5 +1,4 @@
 import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
-import { Type as T } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
 import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { Hono } from "hono";
@@ -10,20 +9,10 @@ import { Context } from "./context";
 import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
+import { inputSchema } from "./types/input-schema";
 import { Manifest } from "./types/manifest";
 import { HandlerReturn } from "./types/sdk";
 import { getPluginOptions, Options } from "./util";
-
-const inputSchema = T.Object({
-  stateId: T.String(),
-  eventName: T.String(),
-  eventPayload: T.Record(T.String(), T.Any()),
-  command: T.Union([T.Null(), T.Object({ name: T.String(), parameters: T.Unknown() })]),
-  authToken: T.String(),
-  settings: T.Record(T.String(), T.Any()),
-  ref: T.String(),
-  signature: T.String(),
-});
 
 export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
   handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => HandlerReturn,
@@ -49,11 +38,11 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       console.log(inputSchemaErrors, { depth: null });
       throw new HTTPException(400, { message: "Invalid body" });
     }
-    const inputs = Value.Decode(inputSchema, body);
-    const signature = inputs.signature;
-    if (!pluginOptions.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, inputs, signature))) {
+    const signature = body.signature;
+    if (!pluginOptions.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, body, signature))) {
       throw new HTTPException(400, { message: "Invalid signature" });
     }
+    const inputs = Value.Decode(inputSchema, body);
 
     let config: TConfig;
     if (pluginOptions.settingsSchema) {

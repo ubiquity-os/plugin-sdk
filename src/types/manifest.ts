@@ -14,6 +14,7 @@ export const manifestSchema = T.Object({
   description: T.Optional(T.String({ default: "" })),
   commands: T.Optional(T.Record(T.String({ pattern: "^[A-Za-z-_]+$" }), commandSchema, { default: {} })),
   "ubiquity:listeners": T.Optional(T.Array(runEvent, { default: [] })),
+  "ubiquity:skipBotEvents": T.Optional(T.Boolean({ default: true })),
   configuration: T.Optional(T.Record(T.String(), T.Any(), { default: {} })),
   skipBotEvents: T.Optional(T.Boolean({ default: true })),
 });

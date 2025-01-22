@@ -17,14 +17,18 @@ export interface CommentOptions {
   updateComment?: boolean;
 }
 
+type WithIssueNumber<T> = T & {
+  issueNumber: number;
+};
+
 export type PostComment = {
   (
     context: Context,
     message: LogReturn | Error,
     options?: CommentOptions
-  ): Promise<
-    RestEndpointMethodTypes["issues"]["updateComment"]["response"]["data"] | RestEndpointMethodTypes["issues"]["createComment"]["response"]["data"] | null
-  >;
+  ): Promise<WithIssueNumber<
+    RestEndpointMethodTypes["issues"]["updateComment"]["response"]["data"] | RestEndpointMethodTypes["issues"]["createComment"]["response"]["data"]
+  > | null>;
   lastCommentId?: number;
 };
 
@@ -58,7 +62,7 @@ export const postComment: PostComment = async function (
         comment_id: postComment.lastCommentId,
         body: body,
       });
-      return commentData.data;
+      return { ...commentData.data, issueNumber };
     } else {
       const commentData = await context.octokit.rest.issues.createComment({
         owner: context.payload.repository.owner.login,
@@ -67,7 +71,7 @@ export const postComment: PostComment = async function (
         body: body,
       });
       postComment.lastCommentId = commentData.data.id;
-      return commentData.data;
+      return { ...commentData.data, issueNumber };
     }
   } else {
     context.logger.info("Cannot post comment because repository is not found in the payload.", { payload: context.payload });

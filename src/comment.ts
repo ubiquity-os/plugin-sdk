@@ -1,4 +1,4 @@
-import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
+import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { LogReturn, Metadata } from "@ubiquity-os/ubiquity-os-logger";
 import { Context } from "./context";
 import { PluginRuntimeInfo } from "./helpers/runtime-info";

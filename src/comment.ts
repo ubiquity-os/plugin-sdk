@@ -1,3 +1,4 @@
+import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
 import { LogReturn, Metadata } from "@ubiquity-os/ubiquity-os-logger";
 import { Context } from "./context";
 import { PluginRuntimeInfo } from "./helpers/runtime-info";
@@ -17,7 +18,13 @@ export interface CommentOptions {
 }
 
 export type PostComment = {
-  (context: Context, message: LogReturn | Error, options?: CommentOptions): Promise<void>;
+  (
+    context: Context,
+    message: LogReturn | Error,
+    options?: CommentOptions
+  ): Promise<
+    RestEndpointMethodTypes["issues"]["updateComment"]["response"]["data"] | RestEndpointMethodTypes["issues"]["createComment"]["response"]["data"] | null
+  >;
   lastCommentId?: number;
 };
 
@@ -39,18 +46,19 @@ export const postComment: PostComment = async function (
     issueNumber = context.payload.discussion.number;
   } else {
     context.logger.info("Cannot post comment because issue is not found in the payload.");
-    return;
+    return null;
   }
 
   if ("repository" in context.payload && context.payload.repository?.owner?.login) {
     const body = await createStructuredMetadataWithMessage(context, message, options);
     if (options.updateComment && postComment.lastCommentId) {
-      await context.octokit.rest.issues.updateComment({
+      const commentData = await context.octokit.rest.issues.updateComment({
         owner: context.payload.repository.owner.login,
         repo: context.payload.repository.name,
         comment_id: postComment.lastCommentId,
         body: body,
       });
+      return commentData.data;
     } else {
       const commentData = await context.octokit.rest.issues.createComment({
         owner: context.payload.repository.owner.login,
@@ -59,10 +67,12 @@ export const postComment: PostComment = async function (
         body: body,
       });
       postComment.lastCommentId = commentData.data.id;
+      return commentData.data;
     }
   } else {
     context.logger.info("Cannot post comment because repository is not found in the payload.", { payload: context.payload });
   }
+  return null;
 };
 
 async function createStructuredMetadataWithMessage(context: Context, message: LogReturn | Error, options: CommentOptions) {

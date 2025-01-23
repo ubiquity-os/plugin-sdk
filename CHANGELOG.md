@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.2...v2.0.3) (2025-01-23)
+
+
+### Bug Fixes
+
+* the data is returned from the `postComment` function ([34d39a5](https://github.com/ubiquity-os/plugin-sdk/commit/34d39a5fa001f0192c3333102572a1f724666dd1))
+
 ## [2.0.2](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.1...v2.0.2) (2025-01-17)
 
 

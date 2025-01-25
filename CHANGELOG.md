@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.4](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.3...v2.0.4) (2025-01-25)
+
+
+### Bug Fixes
+
+* bumped logger package version ([ba94c93](https://github.com/ubiquity-os/plugin-sdk/commit/ba94c93327470ce27ea0a2e84a7afde49dd28317))
+
 ## [2.0.3](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.2...v2.0.3) (2025-01-23)
 
 

@@ -181,9 +181,8 @@ describe("SDK worker tests", () => {
       issue_number: 5,
       owner: "ubiquity-os",
       repo: "bot",
-      body: `\`\`\`diff
-! test error
-\`\`\`
+      body: `> [!CAUTION]
+> test error
 
 <!-- UbiquityOS - createPlugin.name - 1234 - @gentlementlegen - http://localhost
 {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.5](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.4...v2.0.5) (2025-01-27)
+
+
+### Miscellaneous Chores
+
+* release 2.0.5 ([394da0f](https://github.com/ubiquity-os/plugin-sdk/commit/394da0f1979c68b8cb93c747a920ce5a7e41e3d1))
+
 ## [2.0.4](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.3...v2.0.4) (2025-01-25)
 
 

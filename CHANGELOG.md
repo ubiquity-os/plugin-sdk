@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.6](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.5...v2.0.6) (2025-01-27)
+
+
+### Bug Fixes
+
+* changed logic for Actions to check the body ([96ab41c](https://github.com/ubiquity-os/plugin-sdk/commit/96ab41c2a8f4ee01b9a77587f4dfd27d43225008))
+
 ## [2.0.5](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.4...v2.0.5) (2025-01-27)
 
 

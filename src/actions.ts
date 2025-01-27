@@ -27,20 +27,18 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
   }
 
   const body = github.context.payload.inputs;
-  const signature = body.signature;
-  if (!pluginOptions.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, body, signature))) {
-    core.setFailed(`Error: Invalid signature`);
-    return;
-  }
-
-  const inputPayload = github.context.payload.inputs;
-  const inputSchemaErrors = [...Value.Errors(inputSchema, inputPayload)];
+  const inputSchemaErrors = [...Value.Errors(inputSchema, body)];
   if (inputSchemaErrors.length) {
     console.dir(inputSchemaErrors, { depth: null });
     core.setFailed(`Error: Invalid inputs payload: ${inputSchemaErrors.join(",")}`);
     return;
   }
-  const inputs = Value.Decode(inputSchema, inputPayload);
+  const signature = body.signature;
+  if (!pluginOptions.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, body, signature))) {
+    core.setFailed(`Error: Invalid signature`);
+    return;
+  }
+  const inputs = Value.Decode(inputSchema, body);
 
   let config: TConfig;
   if (pluginOptions.settingsSchema) {

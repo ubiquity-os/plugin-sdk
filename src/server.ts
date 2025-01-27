@@ -35,7 +35,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     const body = await ctx.req.json();
     const inputSchemaErrors = [...Value.Errors(inputSchema, body)];
     if (inputSchemaErrors.length) {
-      console.log(inputSchemaErrors, { depth: null });
+      console.dir(inputSchemaErrors, { depth: null });
       throw new HTTPException(400, { message: "Invalid body" });
     }
     const signature = body.signature;
@@ -49,7 +49,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       try {
         config = Value.Decode(pluginOptions.settingsSchema, Value.Default(pluginOptions.settingsSchema, inputs.settings));
       } catch (e) {
-        console.log(...Value.Errors(pluginOptions.settingsSchema, inputs.settings), { depth: null });
+        console.dir(...Value.Errors(pluginOptions.settingsSchema, inputs.settings), { depth: null });
         throw e;
       }
     } else {
@@ -62,7 +62,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       try {
         env = Value.Decode(pluginOptions.envSchema, Value.Default(pluginOptions.envSchema, honoEnvironment));
       } catch (e) {
-        console.log(...Value.Errors(pluginOptions.envSchema, honoEnvironment), { depth: null });
+        console.dir(...Value.Errors(pluginOptions.envSchema, honoEnvironment), { depth: null });
         throw e;
       }
     } else {

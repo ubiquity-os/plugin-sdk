@@ -23,7 +23,7 @@ export function getPluginOptions(options: Options | undefined) {
   return {
     // Important to use || and not ?? to not consider empty strings
     kernelPublicKey: options?.kernelPublicKey || KERNEL_PUBLIC_KEY,
-    logLevel: options?.logLevel ?? LOG_LEVEL.INFO,
+    logLevel: options?.logLevel || LOG_LEVEL.INFO,
     postCommentOnError: options?.postCommentOnError ?? true,
     settingsSchema: options?.settingsSchema,
     envSchema: options?.envSchema,

@@ -62,7 +62,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       try {
         env = Value.Decode(pluginOptions.envSchema, Value.Default(pluginOptions.envSchema, honoEnvironment));
       } catch (e) {
-        console.log(...Value.Errors(pluginOptions.envSchema, honoEnvironment), { depth: null });
+        console.dir(...Value.Errors(pluginOptions.envSchema, honoEnvironment), { depth: null });
         throw e;
       }
     } else {

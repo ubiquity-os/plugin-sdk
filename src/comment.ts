@@ -5,6 +5,7 @@ import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { sanitizeMetadata } from "./util";
 
 const HEADER_NAME = "UbiquityOS";
+const lastCommentId = { reviewCommentId: null as number | null, issueCommentId: null as number | null };
 
 export interface CommentOptions {
   /*
@@ -17,148 +18,152 @@ export interface CommentOptions {
   updateComment?: boolean;
 }
 
-type WithIssueNumber<T> = T & {
-  issueNumber: number;
-};
-
 type PostedGithubComment =
   | RestEndpointMethodTypes["issues"]["updateComment"]["response"]["data"]
   | RestEndpointMethodTypes["issues"]["createComment"]["response"]["data"]
   | RestEndpointMethodTypes["pulls"]["createReplyForReviewComment"]["response"]["data"];
 
-/**
- * Posts a comment on a GitHub issue if the issue exists in the context payload, embedding structured metadata to it.
- */
+type WithIssueNumber<T> = T & {
+  issueNumber: number;
+};
+
+interface IssueContext {
+  issueNumber: number;
+  commentId?: number;
+  owner: string;
+  repo: string;
+}
+
+function getIssueNumber(context: Context): number | undefined {
+  if ("issue" in context.payload) return context.payload.issue.number;
+  if ("pull_request" in context.payload) return context.payload.pull_request.number;
+  if ("discussion" in context.payload) return context.payload.discussion.number;
+  return undefined;
+}
+
+function getCommentId(context: Context): number | undefined {
+  return "pull_request" in context.payload && "comment" in context.payload ? context.payload.comment.id : undefined;
+}
+
+function extractIssueContext(context: Context): IssueContext | null {
+  if (!("repository" in context.payload) || !context.payload.repository?.owner?.login) {
+    return null;
+  }
+
+  const issueNumber = getIssueNumber(context);
+  if (!issueNumber) return null;
+
+  return {
+    issueNumber,
+    commentId: getCommentId(context),
+    owner: context.payload.repository.owner.login,
+    repo: context.payload.repository.name,
+  };
+}
+
+async function processMessage(context: Context, message: LogReturn | Error) {
+  if (message instanceof Error) {
+    const metadata = {
+      message: message.message,
+      name: message.name,
+      stack: message.stack,
+    };
+    return { metadata, logMessage: context.logger.error(message.message).logMessage };
+  }
+
+  const metadata = message.metadata
+    ? {
+        message: message.metadata.message,
+        stack: message.metadata.stack || message.metadata.error?.stack,
+        caller: message.metadata.caller || message.metadata.error?.stack?.split("\n")[2]?.match(/at (\S+)/)?.[1],
+      }
+    : { ...message };
+
+  return { metadata, logMessage: message.logMessage };
+}
+
+function getInstigatorName(context: Context): string {
+  if (
+    "installation" in context.payload &&
+    context.payload.installation &&
+    "account" in context.payload.installation &&
+    context.payload.installation?.account?.name
+  ) {
+    return context.payload.installation?.account?.name;
+  }
+  return context.payload.sender?.login || HEADER_NAME;
+}
+
+async function createMetadataContent(context: Context, metadata: Metadata) {
+  const jsonPretty = sanitizeMetadata(metadata);
+  const instigatorName = getInstigatorName(context);
+  const runUrl = PluginRuntimeInfo.getInstance().runUrl;
+  const version = await PluginRuntimeInfo.getInstance().version;
+  const callingFnName = metadata.caller || "anonymous";
+
+  return {
+    header: `<!-- ${HEADER_NAME} - ${callingFnName} - ${version} - @${instigatorName} - ${runUrl}`,
+    jsonPretty,
+  };
+}
+
+function formatMetadataContent(logMessage: LogReturn["logMessage"], header: string, jsonPretty: string): string {
+  const metadataVisible = ["```json", jsonPretty, "```"].join("\n");
+  const metadataHidden = [header, jsonPretty, "-->"].join("\n");
+
+  return logMessage?.type === "fatal" ? [metadataVisible, metadataHidden].join("\n") : metadataHidden;
+}
+
+async function createCommentBody(context: Context, message: LogReturn | Error, options: CommentOptions): Promise<string> {
+  const { metadata, logMessage } = await processMessage(context, message);
+  const { header, jsonPretty } = await createMetadataContent(context, metadata);
+  const metadataContent = formatMetadataContent(logMessage, header, jsonPretty);
+
+  return `${options.raw ? logMessage?.raw : logMessage?.diff}\n\n${metadataContent}\n`;
+}
+
 export async function postComment(
   context: Context,
   message: LogReturn | Error,
   options: CommentOptions = { updateComment: true, raw: false }
 ): Promise<WithIssueNumber<PostedGithubComment> | null> {
-  let issueNumber;
-  let commentId: number | null = null;
-
-  if ("issue" in context.payload) {
-    issueNumber = context.payload.issue.number;
-  } else if ("pull_request" in context.payload) {
-    issueNumber = context.payload.pull_request.number;
-    if ("comment" in context.payload) {
-      commentId = context.payload.comment.id;
-    }
-  } else if ("discussion" in context.payload) {
-    issueNumber = context.payload.discussion.number;
-  } else {
-    context.logger.info("Cannot post comment because issue is not found in the payload.");
+  const issueContext = extractIssueContext(context);
+  if (!issueContext) {
+    context.logger.info("Cannot post comment: missing issue context in payload");
     return null;
   }
 
-  if ("repository" in context.payload && context.payload.repository?.owner?.login) {
-    const body = await createStructuredMetadataWithMessage(context, message, options);
-    if (options.updateComment && postComment.lastCommentId.issueCommentId && !("pull_request" in context.payload && "comment" in context.payload)) {
-      const commentData = await context.octokit.rest.issues.updateComment({
-        owner: context.payload.repository.owner.login,
-        repo: context.payload.repository.name,
-        comment_id: postComment.lastCommentId.issueCommentId,
-        body: body,
-      });
+  const body = await createCommentBody(context, message, options);
+  const { issueNumber, commentId, owner, repo } = issueContext;
 
-      return { ...commentData.data, issueNumber };
-    } else if (options.updateComment && "pull_request" in context.payload && "comment" in context.payload && postComment.lastCommentId.reviewCommentId) {
-      const commentData = await context.octokit.rest.pulls.updateReviewComment({
-        body: body,
-        owner: context.payload.repository.owner.login,
-        repo: context.payload.repository.name,
-        comment_id: postComment.lastCommentId.reviewCommentId,
-      });
-
-      return { ...commentData.data, issueNumber };
-    } else {
-      let commentData;
-      if (commentId) {
-        commentData = await context.octokit.rest.pulls.createReplyForReviewComment({
-          owner: context.payload.repository.owner.login,
-          repo: context.payload.repository.name,
-          pull_number: issueNumber,
-          comment_id: commentId,
-          body: body,
-        });
-        postComment.lastCommentId = {
-          ...postComment.lastCommentId,
-          reviewCommentId: commentData.data.id,
-        };
-      } else {
-        commentData = await context.octokit.rest.issues.createComment({
-          owner: context.payload.repository.owner.login,
-          repo: context.payload.repository.name,
-          issue_number: issueNumber,
-          body: body,
-        });
-        postComment.lastCommentId = {
-          ...postComment.lastCommentId,
-          issueCommentId: commentData.data.id,
-        };
-      }
-      return { ...commentData.data, issueNumber };
-    }
-  } else {
-    context.logger.info("Cannot post comment because repository is not found in the payload.", { payload: context.payload });
+  if (options.updateComment && lastCommentId.issueCommentId && !("pull_request" in context.payload && "comment" in context.payload)) {
+    const commentData = await context.octokit.rest.issues.updateComment({
+      owner,
+      repo,
+      comment_id: lastCommentId.issueCommentId,
+      body,
+    });
+    return { ...commentData.data, issueNumber };
   }
-  return null;
+
+  if (commentId) {
+    const commentData = await context.octokit.rest.pulls.createReplyForReviewComment({
+      owner,
+      repo,
+      pull_number: issueNumber,
+      comment_id: commentId,
+      body,
+    });
+    lastCommentId.reviewCommentId = commentData.data.id;
+    return { ...commentData.data, issueNumber };
+  }
+
+  const commentData = await context.octokit.rest.issues.createComment({
+    owner,
+    repo,
+    issue_number: issueNumber,
+    body,
+  });
+  lastCommentId.issueCommentId = commentData.data.id;
+  return { ...commentData.data, issueNumber };
 }
-
-async function createStructuredMetadataWithMessage(context: Context, message: LogReturn | Error, options: CommentOptions) {
-  let logMessage;
-  let callingFnName;
-  let instigatorName;
-  let metadata: Metadata;
-
-  if (message instanceof Error) {
-    metadata = {
-      message: message.message,
-      name: message.name,
-      stack: message.stack,
-    };
-    callingFnName = message.stack?.split("\n")[2]?.match(/at (\S+)/)?.[1] ?? "anonymous";
-    logMessage = context.logger.error(message.message).logMessage;
-  } else if (message.metadata) {
-    metadata = {
-      message: message.metadata.message,
-      stack: message.metadata.stack || message.metadata.error?.stack,
-      caller: message.metadata.caller || message.metadata.error?.stack?.split("\n")[2]?.match(/at (\S+)/)?.[1],
-    };
-    logMessage = message.logMessage;
-    callingFnName = metadata.caller;
-  } else {
-    metadata = { ...message };
-  }
-  const jsonPretty = sanitizeMetadata(metadata);
-
-  if ("installation" in context.payload && context.payload.installation && "account" in context.payload.installation) {
-    instigatorName = context.payload.installation?.account?.name;
-  } else {
-    instigatorName = context.payload.sender?.login || HEADER_NAME;
-  }
-  const runUrl = PluginRuntimeInfo.getInstance().runUrl;
-  const version = await PluginRuntimeInfo.getInstance().version;
-
-  const ubiquityMetadataHeader = `<!-- ${HEADER_NAME} - ${callingFnName} - ${version} - @${instigatorName} - ${runUrl}`;
-
-  let metadataSerialized: string;
-  const metadataSerializedVisible = ["```json", jsonPretty, "```"].join("\n");
-  const metadataSerializedHidden = [ubiquityMetadataHeader, jsonPretty, "-->"].join("\n");
-
-  if (logMessage?.type === "fatal") {
-    // if the log message is fatal, then we want to show the metadata
-    metadataSerialized = [metadataSerializedVisible, metadataSerializedHidden].join("\n");
-  } else {
-    // otherwise we want to hide it
-    metadataSerialized = metadataSerializedHidden;
-  }
-
-  // Add carriage returns to avoid any formatting issue
-  return `${options.raw ? logMessage?.raw : logMessage?.diff}\n\n${metadataSerialized}\n`;
-}
-
-postComment.lastCommentId = { reviewCommentId: null, issueCommentId: null } as {
-  reviewCommentId: number | null;
-  issueCommentId: number | null;
-};

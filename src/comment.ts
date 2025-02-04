@@ -21,6 +21,11 @@ type WithIssueNumber<T> = T & {
   issueNumber: number;
 };
 
+type PostedGithubComment =
+  | RestEndpointMethodTypes["issues"]["updateComment"]["response"]["data"]
+  | RestEndpointMethodTypes["issues"]["createComment"]["response"]["data"]
+  | RestEndpointMethodTypes["pulls"]["createReplyForReviewComment"]["response"]["data"];
+
 /**
  * Posts a comment on a GitHub issue if the issue exists in the context payload, embedding structured metadata to it.
  */
@@ -28,17 +33,17 @@ export async function postComment(
   context: Context,
   message: LogReturn | Error,
   options: CommentOptions = { updateComment: true, raw: false }
-): Promise<WithIssueNumber<
-  RestEndpointMethodTypes["issues"]["updateComment"]["response"]["data"] | RestEndpointMethodTypes["issues"]["createComment"]["response"]["data"]
-> | null> {
+): Promise<WithIssueNumber<PostedGithubComment> | null> {
   let issueNumber;
-
-  console.log(JSON.stringify(context.payload, null, 2));
+  let commentId: number | null = null;
 
   if ("issue" in context.payload) {
     issueNumber = context.payload.issue.number;
   } else if ("pull_request" in context.payload) {
     issueNumber = context.payload.pull_request.number;
+    if ("comment" in context.payload) {
+      commentId = context.payload.comment.id;
+    }
   } else if ("discussion" in context.payload) {
     issueNumber = context.payload.discussion.number;
   } else {
@@ -48,22 +53,50 @@ export async function postComment(
 
   if ("repository" in context.payload && context.payload.repository?.owner?.login) {
     const body = await createStructuredMetadataWithMessage(context, message, options);
-    if (options.updateComment && postComment.lastCommentId) {
+    if (options.updateComment && postComment.lastCommentId.issueCommentId && !("pull_request" in context.payload && "comment" in context.payload)) {
       const commentData = await context.octokit.rest.issues.updateComment({
         owner: context.payload.repository.owner.login,
         repo: context.payload.repository.name,
-        comment_id: postComment.lastCommentId,
+        comment_id: postComment.lastCommentId.issueCommentId,
         body: body,
       });
+
       return { ...commentData.data, issueNumber };
-    } else {
-      const commentData = await context.octokit.rest.issues.createComment({
+    } else if (options.updateComment && "pull_request" in context.payload && "comment" in context.payload && postComment.lastCommentId.reviewCommentId) {
+      const commentData = await context.octokit.rest.pulls.updateReviewComment({
+        body: body,
         owner: context.payload.repository.owner.login,
         repo: context.payload.repository.name,
-        issue_number: issueNumber,
-        body: body,
+        comment_id: postComment.lastCommentId.reviewCommentId,
       });
-      postComment.lastCommentId = commentData.data.id;
+
+      return { ...commentData.data, issueNumber };
+    } else {
+      let commentData;
+      if (commentId) {
+        commentData = await context.octokit.rest.pulls.createReplyForReviewComment({
+          owner: context.payload.repository.owner.login,
+          repo: context.payload.repository.name,
+          pull_number: issueNumber,
+          comment_id: commentId,
+          body: body,
+        });
+        postComment.lastCommentId = {
+          ...postComment.lastCommentId,
+          reviewCommentId: commentData.data.id,
+        };
+      } else {
+        commentData = await context.octokit.rest.issues.createComment({
+          owner: context.payload.repository.owner.login,
+          repo: context.payload.repository.name,
+          issue_number: issueNumber,
+          body: body,
+        });
+        postComment.lastCommentId = {
+          ...postComment.lastCommentId,
+          issueCommentId: commentData.data.id,
+        };
+      }
       return { ...commentData.data, issueNumber };
     }
   } else {
@@ -125,4 +158,7 @@ async function createStructuredMetadataWithMessage(context: Context, message: Lo
   return `${options.raw ? logMessage?.raw : logMessage?.diff}\n\n${metadataSerialized}\n`;
 }
 
-postComment.lastCommentId = null as number | null;
+postComment.lastCommentId = { reviewCommentId: null, issueCommentId: null } as {
+  reviewCommentId: number | null;
+  issueCommentId: number | null;
+};

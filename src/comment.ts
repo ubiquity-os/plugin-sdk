@@ -21,26 +21,19 @@ type WithIssueNumber<T> = T & {
   issueNumber: number;
 };
 
-export type PostComment = {
-  (
-    context: Context,
-    message: LogReturn | Error,
-    options?: CommentOptions
-  ): Promise<WithIssueNumber<
-    RestEndpointMethodTypes["issues"]["updateComment"]["response"]["data"] | RestEndpointMethodTypes["issues"]["createComment"]["response"]["data"]
-  > | null>;
-  lastCommentId?: number;
-};
-
 /**
  * Posts a comment on a GitHub issue if the issue exists in the context payload, embedding structured metadata to it.
  */
-export const postComment: PostComment = async function (
+export async function postComment(
   context: Context,
   message: LogReturn | Error,
   options: CommentOptions = { updateComment: true, raw: false }
-) {
+): Promise<WithIssueNumber<
+  RestEndpointMethodTypes["issues"]["updateComment"]["response"]["data"] | RestEndpointMethodTypes["issues"]["createComment"]["response"]["data"]
+> | null> {
   let issueNumber;
+
+  console.log(JSON.stringify(context.payload, null, 2));
 
   if ("issue" in context.payload) {
     issueNumber = context.payload.issue.number;
@@ -77,7 +70,7 @@ export const postComment: PostComment = async function (
     context.logger.info("Cannot post comment because repository is not found in the payload.", { payload: context.payload });
   }
   return null;
-};
+}
 
 async function createStructuredMetadataWithMessage(context: Context, message: LogReturn | Error, options: CommentOptions) {
   let logMessage;
@@ -131,3 +124,5 @@ async function createStructuredMetadataWithMessage(context: Context, message: Lo
   // Add carriage returns to avoid any formatting issue
   return `${options.raw ? logMessage?.raw : logMessage?.diff}\n\n${metadataSerialized}\n`;
 }
+
+postComment.lastCommentId = null as number | null;

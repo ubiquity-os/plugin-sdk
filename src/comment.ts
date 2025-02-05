@@ -34,6 +34,64 @@ interface IssueContext {
   repo: string;
 }
 
+async function updateIssueComment(
+  context: Context,
+  params: { owner: string; repo: string; body: string; issueNumber: number }
+): Promise<WithIssueNumber<PostedGithubComment>> {
+  if (!lastCommentId.issueCommentId) {
+    throw context.logger.error("issueCommentId is missing");
+  }
+  const commentData = await context.octokit.rest.issues.updateComment({
+    owner: params.owner,
+    repo: params.repo,
+    comment_id: lastCommentId.issueCommentId,
+    body: params.body,
+  });
+  return { ...commentData.data, issueNumber: params.issueNumber };
+}
+
+async function updateReviewComment(
+  context: Context,
+  params: { owner: string; repo: string; body: string; issueNumber: number }
+): Promise<WithIssueNumber<PostedGithubComment>> {
+  if (!lastCommentId.reviewCommentId) {
+    throw context.logger.error("reviewCommentId is missing");
+  }
+  const commentData = await context.octokit.rest.pulls.updateReviewComment({
+    owner: params.owner,
+    repo: params.repo,
+    comment_id: lastCommentId.reviewCommentId,
+    body: params.body,
+  });
+  return { ...commentData.data, issueNumber: params.issueNumber };
+}
+
+async function createNewComment(
+  context: Context,
+  params: { owner: string; repo: string; body: string; issueNumber: number; commentId?: number }
+): Promise<WithIssueNumber<PostedGithubComment>> {
+  if (params.commentId) {
+    const commentData = await context.octokit.rest.pulls.createReplyForReviewComment({
+      owner: params.owner,
+      repo: params.repo,
+      pull_number: params.issueNumber,
+      comment_id: params.commentId,
+      body: params.body,
+    });
+    lastCommentId.reviewCommentId = commentData.data.id;
+    return { ...commentData.data, issueNumber: params.issueNumber };
+  }
+
+  const commentData = await context.octokit.rest.issues.createComment({
+    owner: params.owner,
+    repo: params.repo,
+    issue_number: params.issueNumber,
+    body: params.body,
+  });
+  lastCommentId.issueCommentId = commentData.data.id;
+  return { ...commentData.data, issueNumber: params.issueNumber };
+}
+
 function getIssueNumber(context: Context): number | undefined {
   if ("issue" in context.payload) return context.payload.issue.number;
   if ("pull_request" in context.payload) return context.payload.pull_request.number;
@@ -135,35 +193,17 @@ export async function postComment(
 
   const body = await createCommentBody(context, message, options);
   const { issueNumber, commentId, owner, repo } = issueContext;
+  const params = { owner, repo, body, issueNumber };
 
-  if (options.updateComment && lastCommentId.issueCommentId && !("pull_request" in context.payload && "comment" in context.payload)) {
-    const commentData = await context.octokit.rest.issues.updateComment({
-      owner,
-      repo,
-      comment_id: lastCommentId.issueCommentId,
-      body,
-    });
-    return { ...commentData.data, issueNumber };
+  if (options.updateComment) {
+    if (lastCommentId.issueCommentId && !("pull_request" in context.payload && "comment" in context.payload)) {
+      return updateIssueComment(context, params);
+    }
+
+    if (lastCommentId.reviewCommentId && "pull_request" in context.payload && "comment" in context.payload) {
+      return updateReviewComment(context, params);
+    }
   }
 
-  if (commentId) {
-    const commentData = await context.octokit.rest.pulls.createReplyForReviewComment({
-      owner,
-      repo,
-      pull_number: issueNumber,
-      comment_id: commentId,
-      body,
-    });
-    lastCommentId.reviewCommentId = commentData.data.id;
-    return { ...commentData.data, issueNumber };
-  }
-
-  const commentData = await context.octokit.rest.issues.createComment({
-    owner,
-    repo,
-    issue_number: issueNumber,
-    body,
-  });
-  lastCommentId.issueCommentId = commentData.data.id;
-  return { ...commentData.data, issueNumber };
+  return createNewComment(context, { ...params, commentId });
 }

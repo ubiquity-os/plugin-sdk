@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { Logs } from "@ubiquity-os/ubiquity-os-logger";
-import { Context, postComment } from "../src";
+import { CommentHandler, Context } from "../src";
 
 describe("Pull-request comment tests", () => {
   it("Should be able to post to issues and pull-request reviews", async () => {
@@ -73,10 +73,11 @@ describe("Pull-request comment tests", () => {
       logger,
       octokit: new Octokit(),
     } as unknown as Context;
-    await postComment(ctxIssue, logger.ok("test"), { updateComment: true });
-    await postComment(ctxIssue, logger.ok("test 2"), { updateComment: true });
-    await postComment(ctxReviewComment, logger.ok("test 3"), { updateComment: true });
-    await postComment(ctxReviewComment, logger.ok("test 4"), { updateComment: true });
+    const commentHandler = new CommentHandler();
+    await commentHandler.postComment(ctxIssue, logger.ok("test"), { updateComment: true });
+    await commentHandler.postComment(ctxIssue, logger.ok("test 2"), { updateComment: true });
+    await commentHandler.postComment(ctxReviewComment, logger.ok("test 3"), { updateComment: true });
+    await commentHandler.postComment(ctxReviewComment, logger.ok("test 4"), { updateComment: true });
     expect(createComment).toHaveBeenCalledWith({
       owner: "ubiquity-os",
       repo: "plugin-sdk",

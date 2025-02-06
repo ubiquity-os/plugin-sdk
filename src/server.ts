@@ -4,7 +4,7 @@ import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { Hono } from "hono";
 import { env as honoEnv } from "hono/adapter";
 import { HTTPException } from "hono/http-exception";
-import { postComment } from "./comment";
+import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { customOctokit } from "./octokit";
@@ -27,7 +27,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     return ctx.json(manifest);
   });
 
-  app.post("/", async (ctx) => {
+  app.post("/", async function appPost(ctx) {
     if (ctx.req.header("content-type") !== "application/json") {
       throw new HTTPException(400, { message: "Content-Type must be application/json" });
     }
@@ -92,6 +92,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       config: config,
       env: env,
       logger: new Logs(pluginOptions.logLevel),
+      commentHandler: new CommentHandler(),
     };
 
     try {
@@ -108,7 +109,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       }
 
       if (pluginOptions.postCommentOnError && loggerError) {
-        await postComment(context, loggerError);
+        await context.commentHandler.postComment(context, loggerError);
       }
 
       throw new HTTPException(500, { message: "Unexpected error" });

@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { Logs } from "@ubiquity-os/ubiquity-os-logger";
-import { Context, postComment } from "../src";
+import { CommentHandler, Context } from "../src";
 
 describe("Post comment tests", () => {
   it("Should reuse a message if the reuse option is true", async () => {
@@ -41,8 +41,9 @@ describe("Post comment tests", () => {
       logger,
       octokit: new Octokit(),
     } as unknown as Context;
-    await postComment(ctx, logger.ok("test"), { updateComment: true });
-    await postComment(ctx, logger.ok("test 2"), { updateComment: true });
+    const commentHandler = new CommentHandler();
+    await commentHandler.postComment(ctx, logger.ok("test"), { updateComment: true });
+    await commentHandler.postComment(ctx, logger.ok("test 2"), { updateComment: true });
     expect(createComment).toHaveBeenCalledWith({
       owner: "ubiquity-os",
       repo: "plugin-sdk",

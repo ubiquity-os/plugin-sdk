@@ -131,6 +131,7 @@ async function processMessage(context: Context, message: LogReturn | Error) {
 
   const metadata = message.metadata
     ? {
+        ...message.metadata,
         message: message.metadata.message,
         stack: message.metadata.stack || message.metadata.error?.stack,
         caller: message.metadata.caller || message.metadata.error?.stack?.split("\n")[2]?.match(/at (\S+)/)?.[1],

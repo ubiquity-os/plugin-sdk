@@ -4,7 +4,7 @@ import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
 import { Value } from "@sinclair/typebox/value";
 import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { config } from "dotenv";
-import { postComment } from "./comment";
+import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
@@ -86,6 +86,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     config: config,
     env: env,
     logger: new Logs(pluginOptions.logLevel),
+    commentHandler: new CommentHandler(),
   };
 
   try {
@@ -108,7 +109,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     }
 
     if (pluginOptions.postCommentOnError && loggerError) {
-      await postComment(context, loggerError);
+      await context.commentHandler.postComment(context, loggerError);
     }
   }
 }

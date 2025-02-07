@@ -4,7 +4,7 @@ import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
 import { Value } from "@sinclair/typebox/value";
 import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { config } from "dotenv";
-import { postComment } from "./comment";
+import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
@@ -30,7 +30,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
   const inputSchemaErrors = [...Value.Errors(inputSchema, body)];
   if (inputSchemaErrors.length) {
     console.dir(inputSchemaErrors, { depth: null });
-    core.setFailed(`Error: Invalid inputs payload: ${inputSchemaErrors.join(",")}`);
+    core.setFailed(`Error: Invalid inputs payload: ${inputSchemaErrors.map((o) => o.message).join(", ")}`);
     return;
   }
   const signature = body.signature;
@@ -46,6 +46,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
       config = Value.Decode(pluginOptions.settingsSchema, Value.Default(pluginOptions.settingsSchema, inputs.settings));
     } catch (e) {
       console.dir(...Value.Errors(pluginOptions.settingsSchema, inputs.settings), { depth: null });
+      core.setFailed(`Error: Invalid settings provided.`);
       throw e;
     }
   } else {
@@ -58,6 +59,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
       env = Value.Decode(pluginOptions.envSchema, Value.Default(pluginOptions.envSchema, process.env));
     } catch (e) {
       console.dir(...Value.Errors(pluginOptions.envSchema, process.env), { depth: null });
+      core.setFailed(`Error: Invalid environment provided.`);
       throw e;
     }
   } else {
@@ -84,6 +86,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     config: config,
     env: env,
     logger: new Logs(pluginOptions.logLevel),
+    commentHandler: new CommentHandler(),
   };
 
   try {
@@ -106,7 +109,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     }
 
     if (pluginOptions.postCommentOnError && loggerError) {
-      await postComment(context, loggerError);
+      await context.commentHandler.postComment(context, loggerError);
     }
   }
 }

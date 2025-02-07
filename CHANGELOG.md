@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.0.0](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.6...v3.0.0) (2025-02-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* postComment is now wrapped inside a class to avoid instance collisions
+
+### Bug Fixes
+
+* postComment is now wrapped inside a class to avoid instance collisions ([da526ff](https://github.com/ubiquity-os/plugin-sdk/commit/da526ffb2dbb4b008af87f60e7755c4f12922af2))
+* the comments on pull-request reviews and pull requests / issues can be posted ([19950ff](https://github.com/ubiquity-os/plugin-sdk/commit/19950ff4475a1de210e36a4472e47de960e400fd))
+
 ## [2.0.6](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.5...v2.0.6) (2025-01-27)
 
 

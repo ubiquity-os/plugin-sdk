@@ -101,11 +101,13 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     } catch (error) {
       console.error(error);
 
-      let loggerError: LogReturn | Error | null;
-      if (error instanceof Error || error instanceof LogReturn) {
+      let loggerError: LogReturn | Error;
+      if (error instanceof AggregateError) {
+        loggerError = context.logger.error(error.errors.map((err) => (err instanceof Error ? err.message : err)).join("\n\n"), { error });
+      } else if (error instanceof Error || error instanceof LogReturn) {
         loggerError = error;
       } else {
-        loggerError = context.logger.error(`Error: ${error}`);
+        loggerError = context.logger.error(String(error));
       }
 
       if (pluginOptions.postCommentOnError && loggerError) {

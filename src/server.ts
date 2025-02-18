@@ -1,11 +1,12 @@
 import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
 import { Value } from "@sinclair/typebox/value";
-import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
+import { Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { Hono } from "hono";
 import { env as honoEnv } from "hono/adapter";
 import { HTTPException } from "hono/http-exception";
 import { CommentHandler } from "./comment";
 import { Context } from "./context";
+import { transformError } from "./error";
 import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
@@ -101,14 +102,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     } catch (error) {
       console.error(error);
 
-      let loggerError: LogReturn | Error;
-      if (error instanceof AggregateError) {
-        loggerError = context.logger.error(error.errors.map((err) => (err instanceof Error ? err.message : err)).join("\n\n"), { error });
-      } else if (error instanceof Error || error instanceof LogReturn) {
-        loggerError = error;
-      } else {
-        loggerError = context.logger.error(String(error));
-      }
+      const loggerError = transformError(context, error);
 
       if (pluginOptions.postCommentOnError && loggerError) {
         await context.commentHandler.postComment(context, loggerError);

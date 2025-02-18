@@ -1,3 +1,54 @@
+import { EmitterWebhookEvent, EmitterWebhookEventName } from "@octokit/webhooks";
+import { CommandCall } from "./types/command";
+
+export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEventName> {
+  private _privateKey: string;
+  public stateId: string;
+  public eventName: T;
+  public eventPayload: EmitterWebhookEvent<T>["payload"];
+  public settings: unknown;
+  public authToken: string;
+  public ref: string;
+  public command: CommandCall;
+
+  constructor(
+    privateKey: string,
+    stateId: string,
+    eventName: T,
+    eventPayload: EmitterWebhookEvent<T>["payload"],
+    settings: unknown,
+    authToken: string,
+    ref: string,
+    command: CommandCall
+  ) {
+    this._privateKey = privateKey;
+    this.stateId = stateId;
+    this.eventName = eventName;
+    this.eventPayload = eventPayload;
+    this.settings = settings;
+    this.authToken = authToken;
+    this.ref = ref;
+    this.command = command;
+  }
+
+  public async getInputs() {
+    const inputs = {
+      stateId: this.stateId,
+      eventName: this.eventName,
+      eventPayload: JSON.stringify(this.eventPayload),
+      settings: JSON.stringify(this.settings),
+      authToken: this.authToken,
+      ref: this.ref,
+      command: JSON.stringify(this.command),
+    };
+    const signature = await signPayload(JSON.stringify(inputs), this._privateKey);
+    return {
+      ...inputs,
+      signature,
+    };
+  }
+}
+
 interface Inputs {
   stateId: unknown;
   eventName: unknown;

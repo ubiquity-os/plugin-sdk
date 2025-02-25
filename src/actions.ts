@@ -6,6 +6,7 @@ import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { config } from "dotenv";
 import { CommentHandler } from "./comment";
 import { Context } from "./context";
+import { transformError } from "./error";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { inputSchema } from "./types/input-schema";
@@ -96,16 +97,12 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
   } catch (error) {
     console.error(error);
 
-    let loggerError: LogReturn | null;
-    if (error instanceof Error) {
-      core.setFailed(error);
-      loggerError = context.logger.error(`Error: ${error}`, { error: error });
-    } else if (error instanceof LogReturn) {
-      core.setFailed(error.logMessage.raw);
-      loggerError = error;
-    } else {
-      core.setFailed(`Error: ${error}`);
-      loggerError = context.logger.error(`Error: ${error}`);
+    const loggerError = transformError(context, error);
+
+    if (loggerError instanceof LogReturn) {
+      core.setFailed(loggerError.logMessage.diff);
+    } else if (loggerError instanceof Error) {
+      core.setFailed(loggerError);
     }
 
     if (pluginOptions.postCommentOnError && loggerError) {

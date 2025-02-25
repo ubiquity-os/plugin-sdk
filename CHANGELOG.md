@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.1.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.0.0...v3.1.0) (2025-02-25)
+
+
+### Features
+
+* plugin inputs ([79a4966](https://github.com/ubiquity-os/plugin-sdk/commit/79a496611a6968f168ba172381bba27f3e9d5c75))
+* support AggregateError ([429841a](https://github.com/ubiquity-os/plugin-sdk/commit/429841ab24a08473472957835608c6bff51f612a))
+
+
+### Bug Fixes
+
+* refactor into function ([8aca137](https://github.com/ubiquity-os/plugin-sdk/commit/8aca1377a4b3003e357386b9c7cab3c0ae5c7db3))
+
 ## [3.0.0](https://github.com/ubiquity-os/plugin-sdk/compare/v2.0.6...v3.0.0) (2025-02-07)
 
 

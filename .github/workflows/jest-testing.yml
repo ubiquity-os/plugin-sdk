@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
 
       - name: Jest With Coverage
-        run: bun install --frozen-lockfile && bun run jest:test
+        run: bun install && bun run jest:test
 
       - name: Add Jest Report to Summary
         if: always()

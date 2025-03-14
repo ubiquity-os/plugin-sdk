@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.1...v3.1.2) (2025-03-14)
+
+
+### Bug Fixes
+
+* updated obsolete and vulnerable dependencies ([b493321](https://github.com/ubiquity-os/plugin-sdk/commit/b493321032e2fd531fe116919c0ffd5555980d98))
+* updated obsolete and vulnerable dependencies ([4c18170](https://github.com/ubiquity-os/plugin-sdk/commit/4c18170b9614d45fb52af91ae5267aa656cf41e2))
+
 ## [3.1.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.0...v3.1.1) (2025-03-03)
 
 

@@ -4,12 +4,13 @@ import * as crypto from "crypto";
 import { http, HttpResponse } from "msw";
 import { KERNEL_PUBLIC_KEY } from "../src/constants";
 import { Context } from "../src/context";
+import { retry } from "../src/helpers/retry";
 import { createPlugin } from "../src/server";
 import { signPayload } from "../src/signature";
+import { CommandCall } from "../src/types/command";
 import { getPluginOptions } from "../src/util";
 import { server } from "./__mocks__/node";
 import issueCommented from "./__mocks__/requests/issue-comment-post.json";
-import { CommandCall } from "../src/types/command";
 
 const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
   modulusLength: 2048,
@@ -403,5 +404,100 @@ describe("SDK actions tests", () => {
     expect(options.kernelPublicKey).toEqual(KERNEL_PUBLIC_KEY);
     options = getPluginOptions({ kernelPublicKey: "1234" });
     expect(options.kernelPublicKey).toEqual("1234");
+  });
+});
+
+describe("SDK retry tests", () => {
+  class ApiError extends Error {
+    status: number;
+    constructor(status: number) {
+      super();
+      this.status = status;
+    }
+  }
+
+  async function testFunction() {
+    const res = await fetch("https://api.openai.com/v1/", {
+      method: "POST",
+    });
+    if (!res.ok) {
+      throw new ApiError(res.status);
+    }
+    return await res.json();
+  }
+
+  it("should return correct value", async () => {
+    server.use(
+      http.post("https://api.openai.com/v1/*", () => {
+        return HttpResponse.json({ choices: [{ text: "Hello" }] });
+      })
+    );
+
+    const res = await retry(testFunction, { maxRetries: 3 });
+    expect(res).toMatchObject({ choices: [{ text: "Hello" }] });
+  });
+
+  it("should retry on any error", async () => {
+    let called = 0;
+    server.use(
+      http.post("https://api.openai.com/v1/*", () => {
+        called += 1;
+        if (called === 1) {
+          return HttpResponse.text("", { status: 500 });
+        } else if (called === 2) {
+          return HttpResponse.text("", { status: 429 });
+        } else {
+          return HttpResponse.json({ choices: [{ text: "Hello" }] });
+        }
+      })
+    );
+
+    const res = await retry(testFunction, { maxRetries: 3 });
+    expect(res).toMatchObject({ choices: [{ text: "Hello" }] });
+  });
+
+  it("should throw error if maxRetries is reached", async () => {
+    server.use(
+      http.post("https://api.openai.com/v1/*", () => {
+        return HttpResponse.text("", { status: 500 });
+      })
+    );
+
+    await expect(
+      retry(testFunction, {
+        maxRetries: 3,
+        isErrorRetryable: (err) => {
+          return err instanceof ApiError && err.status === 500;
+        },
+      })
+    ).rejects.toMatchObject({ status: 500 });
+  });
+
+  it("should retry on 500 but fail on 400", async () => {
+    let called = 0;
+    server.use(
+      http.post("https://api.openai.com/v1/*", () => {
+        called += 1;
+        if (called === 1) {
+          return HttpResponse.text("", { status: 500 });
+        } else if (called === 2) {
+          return HttpResponse.text("", { status: 400 });
+        } else {
+          return HttpResponse.json({ choices: [{ text: "Hello" }] });
+        }
+      })
+    );
+    const onErrorHandler = jest.fn<() => void>();
+
+    await expect(
+      retry(testFunction, {
+        maxRetries: 3,
+        isErrorRetryable: (err) => {
+          return err instanceof ApiError && err.status === 500;
+        },
+        onError: onErrorHandler,
+      })
+    ).rejects.toMatchObject({ status: 400 });
+    expect(onErrorHandler).toHaveBeenCalledTimes(2);
   });
 });

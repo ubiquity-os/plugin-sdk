@@ -24,6 +24,9 @@
       ],
       "octokit": [
         "dist/octokit.d.ts"
+      ],
+      "helpers": [
+        "dist/helpers.d.ts"
       ]
     }
   },
@@ -52,6 +55,11 @@
       "types": "./dist/octokit.d.ts",
       "import": "./dist/octokit.mjs",
       "require": "./dist/octokit.js"
+    },
+    "./helpers": {
+      "types": "./dist/helpers.d.ts",
+      "import": "./dist/helpers.mjs",
+      "require": "./dist/helpers.js"
     }
   },
   "files": [

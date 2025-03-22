@@ -473,6 +473,26 @@ describe("SDK retry tests", () => {
     ).rejects.toMatchObject({ status: 500 });
   });
 
+  it("should only try once (no retries)", async () => {
+    server.use(
+      http.post("https://api.openai.com/v1/*", () => {
+        return HttpResponse.text("", { status: 500 });
+      })
+    );
+
+    const onErrorHandler = jest.fn<() => void>();
+    await expect(
+      retry(testFunction, {
+        maxRetries: 0,
+        isErrorRetryable: (err) => {
+          return err instanceof ApiError && err.status === 500;
+        },
+        onError: onErrorHandler,
+      })
+    ).rejects.toMatchObject({ status: 500 });
+    expect(onErrorHandler).toHaveBeenCalledTimes(1);
+  });
+
   it("should retry on 500 but fail on 400", async () => {
     let called = 0;
     server.use(

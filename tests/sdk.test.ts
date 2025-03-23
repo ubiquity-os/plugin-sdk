@@ -408,6 +408,7 @@ describe("SDK actions tests", () => {
 });
 
 describe("SDK retry tests", () => {
+  const ok = "ok";
   class ApiError extends Error {
     status: number;
     constructor(status: number) {
@@ -443,9 +444,9 @@ describe("SDK retry tests", () => {
       http.post("https://api.openai.com/v1/*", () => {
         called += 1;
         if (called === 1) {
-          return HttpResponse.text("", { status: 500 });
+          return HttpResponse.text(ok, { status: 500 });
         } else if (called === 2) {
-          return HttpResponse.text("", { status: 429 });
+          return HttpResponse.text(ok, { status: 429 });
         } else {
           return HttpResponse.json({ choices: [{ text: "Hello" }] });
         }
@@ -459,7 +460,7 @@ describe("SDK retry tests", () => {
   it("should throw error if maxRetries is reached", async () => {
     server.use(
       http.post("https://api.openai.com/v1/*", () => {
-        return HttpResponse.text("", { status: 500 });
+        return HttpResponse.text(ok, { status: 500 });
       })
     );
 
@@ -476,7 +477,7 @@ describe("SDK retry tests", () => {
   it("should only try once (no retries)", async () => {
     server.use(
       http.post("https://api.openai.com/v1/*", () => {
-        return HttpResponse.text("", { status: 500 });
+        return HttpResponse.text(ok, { status: 500 });
       })
     );
 
@@ -499,9 +500,9 @@ describe("SDK retry tests", () => {
       http.post("https://api.openai.com/v1/*", () => {
         called += 1;
         if (called === 1) {
-          return HttpResponse.text("", { status: 500 });
+          return HttpResponse.text(ok, { status: 500 });
         } else if (called === 2) {
-          return HttpResponse.text("", { status: 400 });
+          return HttpResponse.text(ok, { status: 400 });
         } else {
           return HttpResponse.json({ choices: [{ text: "Hello" }] });
         }

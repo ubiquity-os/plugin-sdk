@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.2...v3.1.3) (2025-03-24)
+
+
+### Bug Fixes
+
+* export Options type ([334ea4c](https://github.com/ubiquity-os/plugin-sdk/commit/334ea4cdb2a04096e7548f5b2845cf18ed667858))
+
 ## [3.1.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.1...v3.1.2) (2025-03-14)
 
 

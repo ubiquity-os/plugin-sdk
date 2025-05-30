@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.6](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.5...v3.1.6) (2025-05-30)
+
+
+### Bug Fixes
+
+* fallback to deno on missing runtime ([18c3a1a](https://github.com/ubiquity-os/plugin-sdk/commit/18c3a1a4e19fbffcb11f7f5b82af8daa19493f2e))
+
 ## [3.1.5](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.4...v3.1.5) (2025-05-30)
 
 

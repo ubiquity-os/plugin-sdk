@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.5](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.4...v3.1.5) (2025-05-30)
+
+
+### Bug Fixes
+
+* deno deploy runtime info ([653da86](https://github.com/ubiquity-os/plugin-sdk/commit/653da866ad53134c794571a81a0c74b1d5d075d0))
+* deno deploy runtime info ([ec65b82](https://github.com/ubiquity-os/plugin-sdk/commit/ec65b82316a0a79c8e83de24476f3a1cdc67b297))
+
 ## [3.1.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.3...v3.1.4) (2025-03-24)
 
 

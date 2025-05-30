@@ -24,8 +24,7 @@ export abstract class PluginRuntimeInfo {
           PluginRuntimeInfo._instance = new NodeRuntimeInfo(env);
           break;
         default:
-          console.log("No runtime detected, falling back to Deno.");
-          PluginRuntimeInfo._instance = new DenoRuntimeInfo(env);
+          PluginRuntimeInfo._instance = new NodeRuntimeInfo(env);
           break;
       }
     }
@@ -74,7 +73,7 @@ export class DenoRuntimeInfo extends PluginRuntimeInfo {
   }
   public get runUrl() {
     const projectName = Deno.env.get("DENO_PROJECT_NAME");
-    const baseUrl = `https://dash.deno.com/${projectName}/logs`;
+    const baseUrl = `https://dash.deno.com/project/${projectName}/logs`;
     const start = new Date(Date.now() - 60000).toISOString();
     const end = new Date(Date.now() + 60000).toISOString();
     const filters = {

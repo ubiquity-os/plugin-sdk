@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.7](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.6...v3.1.7) (2025-05-30)
+
+
+### Bug Fixes
+
+* fixed url for Deno projects ([8fdf6ea](https://github.com/ubiquity-os/plugin-sdk/commit/8fdf6eac83986d0fa02d84a87865b2f982e3f2a8))
+
 ## [3.1.6](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.5...v3.1.6) (2025-05-30)
 
 

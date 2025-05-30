@@ -24,7 +24,8 @@ export abstract class PluginRuntimeInfo {
           PluginRuntimeInfo._instance = new NodeRuntimeInfo(env);
           break;
         default:
-          PluginRuntimeInfo._instance = new NodeRuntimeInfo(env);
+          console.log("No runtime detected, falling back to Deno.");
+          PluginRuntimeInfo._instance = new DenoRuntimeInfo(env);
           break;
       }
     }

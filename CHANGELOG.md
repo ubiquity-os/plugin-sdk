@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.8](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.7...v3.1.8) (2025-05-30)
+
+
+### Bug Fixes
+
+* fixed typo url for Deno projects ([1ee8349](https://github.com/ubiquity-os/plugin-sdk/commit/1ee8349492490bed38400d537f1cd8ee7625b1eb))
+
 ## [3.1.7](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.6...v3.1.7) (2025-05-30)
 
 

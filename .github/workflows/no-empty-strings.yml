@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Get GitHub App token
-        uses: ubiquity-os/empty-string-checker
+        uses: ubiquity-os/empty-string-checker@main
         env:
           APP_ID: ${{ secrets.APP_ID }}
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}

@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.9](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.8...v3.1.9) (2025-07-09)
+
+
+### Bug Fixes
+
+* remove unused empty string checker ([7164fe0](https://github.com/ubiquity-os/plugin-sdk/commit/7164fe03c542754b2b5474f9e5da61ae3e4b8e6a))
+* removed octokit rest package import ([a7f3bc9](https://github.com/ubiquity-os/plugin-sdk/commit/a7f3bc9aeef571973f33e5203d013188fc4e7d4c))
+
 ## [3.1.8](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.7...v3.1.8) (2025-05-30)
 
 

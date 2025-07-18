@@ -174,12 +174,15 @@ export class CommentHandler {
     return logMessage?.type === "fatal" ? [metadataVisible, metadataHidden].join("\n") : metadataHidden;
   }
 
-  async _createCommentBody(context: Context, message: LogReturn | Error, options: CommentOptions): Promise<string> {
+  /*
+   * Creates the body for the comment, embeds the metadata and the header hidden in the body as well.
+   */
+  public async createCommentBody(context: Context, message: LogReturn | Error, options?: CommentOptions): Promise<string> {
     const { metadata, logMessage } = await this._processMessage(context, message);
     const { header, jsonPretty } = await this._createMetadataContent(context, metadata);
     const metadataContent = this._formatMetadataContent(logMessage, header, jsonPretty);
 
-    return `${options.raw ? logMessage?.raw : logMessage?.diff}\n\n${metadataContent}\n`;
+    return `${options?.raw ? logMessage?.raw : logMessage?.diff}\n\n${metadataContent}\n`;
   }
 
   async postComment(
@@ -193,7 +196,7 @@ export class CommentHandler {
       return null;
     }
 
-    const body = await this._createCommentBody(context, message, options);
+    const body = await this.createCommentBody(context, message, options);
     const { issueNumber, commentId, owner, repo } = issueContext;
     const params = { owner, repo, body, issueNumber };
 

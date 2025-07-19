@@ -1,7 +1,12 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { Logs } from "@ubiquity-os/ubiquity-os-logger";
 
 describe("Post comment tests", () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
   it("Should reuse a message if the reuse option is true", async () => {
     const logger = new Logs("debug");
     const { CommentHandler } = await import("../src");
@@ -60,6 +65,13 @@ describe("Post comment tests", () => {
   });
 
   it("Should construct the body and link the metadata properly", async () => {
+    jest.unstable_mockModule("@octokit/core", () => ({
+      Octokit: {
+        plugin: jest.fn(() => ({
+          defaults: jest.fn(),
+        })),
+      },
+    }));
     jest.unstable_mockModule("../src/helpers/runtime-info", () => ({
       PluginRuntimeInfo: {
         getInstance: jest.fn(() => ({

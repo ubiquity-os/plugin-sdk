@@ -58,4 +58,41 @@ describe("Post comment tests", () => {
     });
     c.clearAllMocks();
   });
+
+  it("Should construct the body and link the metadata properly", async () => {
+    const commentHandler = new CommentHandler();
+    const logger = new Logs("debug");
+    let body = await commentHandler.createCommentBody(
+      {
+        logger,
+        payload: {},
+      } as unknown as Context,
+      logger.ok("My cool message")
+    );
+    expect(body).toEqual(`> [!TIP]
+> My cool message
+
+<!-- UbiquityOS - Object.<anonymous> - undefined - @UbiquityOS - http://localhost
+{
+  "caller": "Object.&lt;anonymous&gt;"
+}
+-->
+`);
+    body = await commentHandler.createCommentBody(
+      {
+        logger,
+        payload: {},
+      } as unknown as Context,
+      logger.ok("My cool message"),
+      { raw: true }
+    );
+    expect(body).toEqual(`My cool message
+
+<!-- UbiquityOS - Object.<anonymous> - undefined - @UbiquityOS - http://localhost
+{
+  "caller": "Object.&lt;anonymous&gt;"
+}
+-->
+`);
+  });
 });

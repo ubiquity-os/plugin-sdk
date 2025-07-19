@@ -1,10 +1,10 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { Logs } from "@ubiquity-os/ubiquity-os-logger";
-import { CommentHandler, Context } from "../src";
 
 describe("Post comment tests", () => {
   it("Should reuse a message if the reuse option is true", async () => {
     const logger = new Logs("debug");
+    const { CommentHandler } = await import("../src");
     const createComment = jest.fn(() => ({
       data: {
         id: 1234,
@@ -40,7 +40,7 @@ describe("Post comment tests", () => {
       },
       logger,
       octokit: new Octokit(),
-    } as unknown as Context;
+    } as never;
     const commentHandler = new CommentHandler();
     await commentHandler.postComment(ctx, logger.ok("test"), { updateComment: true });
     await commentHandler.postComment(ctx, logger.ok("test 2"), { updateComment: true });
@@ -60,19 +60,28 @@ describe("Post comment tests", () => {
   });
 
   it("Should construct the body and link the metadata properly", async () => {
+    jest.unstable_mockModule("../src/helpers/runtime-info", () => ({
+      PluginRuntimeInfo: {
+        getInstance: jest.fn(() => ({
+          version: "1.0.0",
+          runUrl: "https://localhost",
+        })),
+      },
+    }));
+    const { CommentHandler } = await import("../src");
     const commentHandler = new CommentHandler();
     const logger = new Logs("debug");
     let body = await commentHandler.createCommentBody(
       {
         logger,
         payload: {},
-      } as unknown as Context,
+      } as never,
       logger.ok("My cool message")
     );
     expect(body).toEqual(`> [!TIP]
 > My cool message
 
-<!-- UbiquityOS - Object.<anonymous> - undefined - @UbiquityOS - http://localhost
+<!-- UbiquityOS - Object.<anonymous> - 1.0.0 - @UbiquityOS - https://localhost
 {
   "caller": "Object.&lt;anonymous&gt;"
 }
@@ -82,13 +91,13 @@ describe("Post comment tests", () => {
       {
         logger,
         payload: {},
-      } as unknown as Context,
+      } as never,
       logger.ok("My cool message"),
       { raw: true }
     );
     expect(body).toEqual(`My cool message
 
-<!-- UbiquityOS - Object.<anonymous> - undefined - @UbiquityOS - http://localhost
+<!-- UbiquityOS - Object.<anonymous> - 1.0.0 - @UbiquityOS - https://localhost
 {
   "caller": "Object.&lt;anonymous&gt;"
 }

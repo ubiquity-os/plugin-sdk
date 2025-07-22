@@ -120,7 +120,7 @@ export class CommentHandler {
     };
   }
 
-  async _processMessage(context: Context, message: LogReturn | Error) {
+  _processMessage(context: Context, message: LogReturn | Error) {
     if (message instanceof Error) {
       const metadata = {
         message: message.message,
@@ -154,11 +154,11 @@ export class CommentHandler {
     return context.payload.sender?.login || CommentHandler.HEADER_NAME;
   }
 
-  async _createMetadataContent(context: Context, metadata: Metadata) {
+  _createMetadataContent(context: Context, metadata: Metadata) {
     const jsonPretty = sanitizeMetadata(metadata);
     const instigatorName = this._getInstigatorName(context);
     const runUrl = PluginRuntimeInfo.getInstance().runUrl;
-    const version = await PluginRuntimeInfo.getInstance().version;
+    const version = PluginRuntimeInfo.getInstance().version;
     const callingFnName = metadata.caller || "anonymous";
 
     return {
@@ -177,13 +177,13 @@ export class CommentHandler {
   /*
    * Creates the body for the comment, embeds the metadata and the header hidden in the body as well.
    */
-  public async createCommentBody(context: Context, message: LogReturn | Error, options?: Pick<CommentOptions, "raw">): Promise<string> {
+  public createCommentBody(context: Context, message: LogReturn | Error, options?: Pick<CommentOptions, "raw">): string {
     return this._createCommentBody(context, message, options);
   }
 
-  private async _createCommentBody(context: Context, message: LogReturn | Error, options?: CommentOptions): Promise<string> {
-    const { metadata, logMessage } = await this._processMessage(context, message);
-    const { header, jsonPretty } = await this._createMetadataContent(context, metadata);
+  private _createCommentBody(context: Context, message: LogReturn | Error, options?: CommentOptions): string {
+    const { metadata, logMessage } = this._processMessage(context, message);
+    const { header, jsonPretty } = this._createMetadataContent(context, metadata);
     const metadataContent = this._formatMetadataContent(logMessage, header, jsonPretty);
 
     return `${options?.raw ? logMessage?.raw : logMessage?.diff}\n\n${metadataContent}\n`;
@@ -200,7 +200,7 @@ export class CommentHandler {
       return null;
     }
 
-    const body = await this._createCommentBody(context, message, options);
+    const body = this._createCommentBody(context, message, options);
     const { issueNumber, commentId, owner, repo } = issueContext;
     const params = { owner, repo, body, issueNumber };
 

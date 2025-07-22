@@ -31,14 +31,14 @@ export abstract class PluginRuntimeInfo {
     return PluginRuntimeInfo._instance;
   }
 
-  public abstract get version(): Promise<string>;
+  public abstract get version(): string;
   public abstract get runUrl(): string;
 }
 
 export class CfRuntimeInfo extends PluginRuntimeInfo {
-  public get version(): Promise<string> {
+  public get version(): string {
     // See also https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/
-    return Promise.resolve((this._env.CLOUDFLARE_VERSION_METADATA as { id: string })?.id ?? "CLOUDFLARE_VERSION_METADATA");
+    return (this._env.CLOUDFLARE_VERSION_METADATA as { id: string })?.id ?? "CLOUDFLARE_VERSION_METADATA";
   }
   public get runUrl(): string {
     const accountId = this._env.CLOUDFLARE_ACCOUNT_ID ?? "<missing-cloudflare-account-id>";
@@ -52,7 +52,7 @@ export class CfRuntimeInfo extends PluginRuntimeInfo {
 
 export class NodeRuntimeInfo extends PluginRuntimeInfo {
   public get version() {
-    return Promise.resolve(github.context.sha);
+    return github.context.sha;
   }
   public get runUrl() {
     return github.context.payload.repository ? `${github.context.payload.repository?.html_url}/actions/runs/${github.context.runId}` : "http://localhost";
@@ -69,7 +69,7 @@ declare const Deno: {
 
 export class DenoRuntimeInfo extends PluginRuntimeInfo {
   public get version() {
-    return Promise.resolve(Deno.env.get("DENO_DEPLOYMENT_ID"));
+    return Deno.env.get("DENO_DEPLOYMENT_ID");
   }
   public get runUrl() {
     const projectName = Deno.env.get("DENO_PROJECT_NAME");

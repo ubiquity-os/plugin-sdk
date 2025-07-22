@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.10](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.9...v3.1.10) (2025-07-22)
+
+
+### Bug Fixes
+
+* expose comment body creation and invocation logic ([079d953](https://github.com/ubiquity-os/plugin-sdk/commit/079d953040921658ea9c3d734b8039c3dccc8b97))
+* expose comment body creation and invocation logic ([a87c812](https://github.com/ubiquity-os/plugin-sdk/commit/a87c81288ab52044b19adaab6d269274c746f3b5))
+
 ## [3.1.9](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.8...v3.1.9) (2025-07-09)
 
 

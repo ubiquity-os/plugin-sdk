@@ -16,7 +16,7 @@ World
   it("preserves comments inside fenced code blocks", () => {
     const input = "```js\n// code\n<!-- keep me -->\nconsole.log(1);\n```\n";
     const output = cleanMarkdown(input, { tags: [] });
-    expect(output).toEqual(input.trimEnd());
+    expect(output).toEqual(input);
   });
 
   it("preserves comments inside inline code spans", () => {
@@ -52,9 +52,9 @@ After
     expect(output).not.toMatch(/ outside <br>/); // outside <br> removed
   });
 
-  it("collapses excessive blank lines when collapseEmptyLines enabled", () => {
+  it("collapses excessive blank lines when shouldCollapseEmptyLines enabled", () => {
     const input = "Line1\n\n\n\nLine2\n\n\nLine3";
-    const output = cleanMarkdown(input, { collapseEmptyLines: true });
+    const output = cleanMarkdown(input, { shouldCollapseEmptyLines: true });
     // No sequences of 3+ newlines remain
     expect(output).not.toMatch(/\n{3,}/);
   });

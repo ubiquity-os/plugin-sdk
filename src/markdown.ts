@@ -1,5 +1,3 @@
-import { Lexer } from "marked";
-
 /**
  * Options for cleanMarkdown.
  *
@@ -13,10 +11,9 @@ import { Lexer } from "marked";
  * collapseEmptyLines:
  *   If true, collapses sequences of 3+ blank lines down to exactly 2, preserving paragraph spacing while shrinking payload size.
  */
-export interface CleanMarkdownOptions {
-  tags?: (keyof HTMLElementTagNameMap)[];
-  collapseEmptyLines?: boolean;
-}
+type Options = { tags?: string[]; shouldCollapseEmptyLines?: boolean };
+
+const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
 
 /**
  * Cleans a GitHub-flavored markdown string by:
@@ -28,215 +25,80 @@ export interface CleanMarkdownOptions {
  *       * inline code spans
  *       * blockquotes (their contents unchanged)
  *  - Optionally collapsing excessive blank lines
- *
- * NOTE:
- *  - Uses marked's Lexer (tokenization only) to avoid fragile global regex stripping.
- *  - Conservative: we only remove a block tag when opening and closing tag live in the same HTML token.
  */
-export function cleanMarkdown(markdown: string, options: CleanMarkdownOptions = {}): string {
-  if (!markdown) return markdown;
+export function cleanMarkdown(md: string, options: Options = {}): string {
+  const codeBlockRegex = /(```[\s\S]*?```|~~~[\s\S]*?~~~)/g;
+  const { tags = [], shouldCollapseEmptyLines = false } = options;
 
-  const { tags = [], collapseEmptyLines: shouldCollapseEmptyLines = false } = options;
+  const segments: string[] = [];
+  let lastIndex = 0;
 
-  const tagSet = new Set(tags.map((t) => t.toLowerCase()));
-  const inlineTagPattern = tagSet.size ? buildInlineTagPattern([...tagSet]) : null;
-
-  const tokens = Lexer.lex(markdown);
-
-  let out = "";
-  for (const token of tokens as MarkdownToken[]) {
-    out += renderToken(token, tagSet, inlineTagPattern);
+  const matches = [...md.matchAll(codeBlockRegex)];
+  for (const match of matches) {
+    if (match.index > lastIndex) {
+      segments.push(processSegment(md.slice(lastIndex, match.index), tags, shouldCollapseEmptyLines));
+    }
+    segments.push(match[0]); // keep code blocks untouched
+    lastIndex = match.index + match[0].length;
   }
+
+  if (lastIndex < md.length) {
+    segments.push(processSegment(md.slice(lastIndex), tags, shouldCollapseEmptyLines));
+  }
+
+  return segments.join("");
+}
+
+function processSegment(segment: string, extraTags: string[], shouldCollapseEmptyLines: boolean): string {
+  // Protect inline code
+  const inlineCodeRegex = /`[^`]*`/g;
+  const inlineCodes: string[] = [];
+  let s = segment.replace(inlineCodeRegex, (m) => {
+    inlineCodes.push(m);
+    return `__INLINE_CODE_${inlineCodes.length - 1}__`;
+  });
+
+  // Remove HTML comments
+  s = s.replace(/<!--[\s\S]*?-->/g, "");
+
+  // Remove extra tags
+  for (const raw of extraTags) {
+    if (!raw) continue;
+    const tag = raw
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w:-]/g, ""); // allow web components / namespaces
+    if (!tag) continue;
+
+    if (VOID_TAGS.has(tag)) {
+      // Remove <tag> or <tag ... /> (case-insensitive)
+      const voidRe = new RegExp(`<${tag}\\b[^>]*\\/?>`, "gi");
+      s = s.replace(voidRe, "");
+      continue;
+    }
+
+    // Remove paired tags and their contents; repeat to handle nesting
+    const pairRe = new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}>`, "gi");
+    let prev: string;
+    do {
+      prev = s;
+      s = s.replace(pairRe, "");
+    } while (s !== prev);
+
+    // If any stray/open/close remnants remain, drop the tags themselves
+    const openCloseRe = new RegExp(`<\\/?${tag}\\b[^>]*>`, "gi");
+    s = s.replace(openCloseRe, "");
+  }
+
+  // Restore inline code
+  s = s.replace(/__INLINE_CODE_(\d+)__/g, (str, idx) => inlineCodes[+idx]);
 
   if (shouldCollapseEmptyLines) {
-    out = out.replace(/\n{3,}/g, "\n\n");
+    s = s
+      // eslint-disable-next-line sonarjs/slow-regex
+      .replace(/[ \t]+$/gm, "") // trim trailing spaces
+      .replace(/\n{3,}/g, "\n\n"); // collapse 3+ newlines to 2
   }
 
-  return out.trimEnd();
-}
-
-interface BaseTokenShape {
-  raw?: string;
-  text?: string;
-}
-
-interface CodeToken extends BaseTokenShape {
-  type: "code";
-  lang?: string;
-}
-
-interface HtmlToken extends BaseTokenShape {
-  type: "html";
-}
-
-interface ParagraphToken extends BaseTokenShape {
-  type: "paragraph";
-}
-
-interface TextToken extends BaseTokenShape {
-  type: "text";
-}
-
-interface BlockquoteToken extends BaseTokenShape {
-  type: "blockquote";
-  tokens: MarkdownToken[];
-}
-
-interface GenericToken extends BaseTokenShape {
-  type:
-    | "heading"
-    | "list"
-    | "list_item"
-    | "table"
-    | "tablerow"
-    | "tablecell"
-    | "strong"
-    | "em"
-    | "codespan"
-    | "del"
-    | "link"
-    | "image"
-    | "br"
-    | "hr"
-    | "space"
-    | "escape"
-    | "def"
-    | "paragraph"
-    | string;
-}
-
-type MarkdownToken = CodeToken | HtmlToken | ParagraphToken | TextToken | BlockquoteToken | GenericToken;
-
-function renderToken(token: MarkdownToken, tagSet: Set<string>, inlineTagPattern: RegExp | null): string {
-  switch (token.type) {
-    case "code":
-      return renderCode(token as CodeToken);
-    case "blockquote":
-      return renderBlockquote(token as BlockquoteToken);
-    case "html":
-      return renderHtml(token as HtmlToken, tagSet, inlineTagPattern);
-    case "paragraph":
-      return renderParagraph(token as ParagraphToken, inlineTagPattern);
-    case "text":
-      return renderText(token as TextToken, inlineTagPattern);
-    default:
-      return renderOther(token as GenericToken, inlineTagPattern);
-  }
-}
-
-function renderCode(token: CodeToken): string {
-  if (token.raw) return ensureTrailingNewline(token.raw);
-  const fence = "```" + (token.lang || "") + "\n" + (token.text || "") + "\n```";
-  return ensureTrailingNewline(fence);
-}
-
-function renderBlockquote(token: BlockquoteToken): string {
-  if (token.raw) return ensureTrailingNewline(token.raw);
-  const inner = token.tokens.map((t) => t.raw ?? t.text ?? "").join("");
-  return ensureTrailingNewline(inner);
-}
-
-function renderHtml(token: HtmlToken, tagSet: Set<string>, inlineTagPattern: RegExp | null): string {
-  const raw = token.raw ?? token.text ?? "";
-  if (isPureHtmlComment(raw)) return "";
-
-  const root = extractRootTagName(raw);
-
-  // Remove whole block element if the token holds exactly one element with a matching tag
-  if (root && tagSet.has(root) && isWholeSingleElement(raw, root)) {
-    return "";
-  }
-
-  // Otherwise, keep token, but strip inline void-like occurrences for matching tags
-  const processed = inlineTagPattern ? raw.replace(inlineTagPattern, "") : raw;
-  return ensureTrailingNewline(processed);
-}
-
-function renderParagraph(token: ParagraphToken, inlineTagPattern: RegExp | null): string {
-  let raw = token.raw ?? token.text ?? "";
-  raw = stripHtmlCommentsOutsideInlineCode(raw);
-  if (inlineTagPattern) raw = raw.replace(inlineTagPattern, "");
-  raw = removePureCommentOnlyLines(raw);
-  return raw.length ? raw + "\n\n" : "";
-}
-
-function renderText(token: TextToken, inlineTagPattern: RegExp | null): string {
-  let raw = token.raw ?? token.text ?? "";
-  raw = stripHtmlCommentsOutsideInlineCode(raw);
-  if (inlineTagPattern) raw = raw.replace(inlineTagPattern, "");
-  return ensureTrailingNewline(raw);
-}
-
-function renderOther(token: GenericToken, inlineTagPattern: RegExp | null): string {
-  const raw = token.raw;
-  if (!raw) {
-    if (!token.text) return "";
-    let t = stripHtmlCommentsOutsideInlineCode(token.text);
-    if (inlineTagPattern) t = t.replace(inlineTagPattern, "");
-    return ensureTrailingNewline(t);
-  }
-  let processed = raw;
-  if (inlineTagPattern) processed = processed.replace(inlineTagPattern, "");
-  processed = stripHtmlCommentsOutsideInlineCode(processed);
-  return ensureTrailingNewline(processed);
-}
-
-function ensureTrailingNewline(s: string): string {
-  return s.endsWith("\n") ? s : s + "\n";
-}
-
-function buildInlineTagPattern(tags: string[]): RegExp {
-  // Matches <tag ...> or <tag/> or <tag />
-  return new RegExp(`<\\s*(?:${tags.map(escapeRegex).join("|")})(?:\\s+[^>]*)?>\\s*`, "gi");
-}
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function isPureHtmlComment(raw: string): boolean {
-  const trimmed = raw.trim();
-  return /^<!--[\s\S]*?-->$/.test(trimmed);
-}
-
-function extractRootTagName(raw: string): string | null {
-  const rootTagRe = /^<\\s*([a-zA-Z0-9:-]+)/;
-  const m = rootTagRe.exec(raw);
-  return m ? m[1].toLowerCase() : null;
-}
-
-function isWholeSingleElement(raw: string, tag: string): boolean {
-  const trimmed = raw.trim();
-  if (!trimmed.startsWith("<")) return false;
-  const openRe = new RegExp(`^<\\s*${escapeRegex(tag)}(?:\\s+[^>]*)?>`, "i");
-  const closeRe = new RegExp(`<\\/\\s*${escapeRegex(tag)}\\s*>$`, "i");
-  return openRe.test(trimmed) && closeRe.test(trimmed);
-}
-
-function stripHtmlCommentsOutsideInlineCode(text: string): string {
-  if (!text.includes("<!--")) return text;
-  const parts: string[] = [];
-  let lastIndex = 0;
-  const codeSpanRe = /`([^`\\]*(?:\\.[^`\\]*)*)`/g;
-  let m: RegExpExecArray | null;
-  while ((m = codeSpanRe.exec(text)) !== null) {
-    const before = text.slice(lastIndex, m.index);
-    parts.push(removeComments(before));
-    parts.push(m[0]);
-    lastIndex = m.index + m[0].length;
-  }
-  parts.push(removeComments(text.slice(lastIndex)));
-  return parts.join("");
-}
-
-function removeComments(segment: string): string {
-  return segment.replace(/<!--[\s\S]*?-->/g, "");
-}
-
-function removePureCommentOnlyLines(text: string): string {
-  return text
-    .split("\n")
-    .filter((line) => !/^<!--[\s\S]*?-->$/.test(line.trim()))
-    .join("\n")
-    .trimEnd();
+  return s;
 }

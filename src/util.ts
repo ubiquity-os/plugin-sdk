@@ -28,6 +28,7 @@ export function getPluginOptions(options: Options | undefined) {
     settingsSchema: options?.settingsSchema,
     envSchema: options?.envSchema,
     commandSchema: options?.commandSchema,
+    // eslint-disable-next-line sonarjs/deprecation
     bypassSignatureVerification: options?.bypassSignatureVerification || false,
   };
 }

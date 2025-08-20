@@ -19,7 +19,7 @@ const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "i
  * Cleans a GitHub-flavored markdown string by:
  *  - Removing top‑level HTML comments (<!-- ... -->) (outside code / inline code / blockquote context)
  *  - Removing blocks for configured tags when the entire html token is a single element of that tag
- *  - Removing inline occurrences of configured tags treated as void (e.g. <br>) outside fenced / inline code
+ *  - Removing inline occurrences of configured tags treated as void (e.g. \<br\>) outside fenced / inline code
  *  - Preserving comments and tags inside:
  *       * fenced or indented code blocks
  *       * inline code spans

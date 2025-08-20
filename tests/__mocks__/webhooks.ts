@@ -13,7 +13,7 @@ class WebhooksMocked {
   receive(_: unknown) {}
 }
 
-void jest.mock("@octokit/webhooks", () => {
+jest.mock("@octokit/webhooks", () => {
   const originalModule = jest.requireActual("@octokit/webhooks");
   return {
     __esModule: true,

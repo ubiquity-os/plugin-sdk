@@ -111,6 +111,7 @@
     "@jest/globals": "^29.7.0",
     "@mswjs/data": "0.16.1",
     "@types/node": "^20.11.19",
+    "@ubiquity-os/eslint-plugin-no-empty-strings": "^1.0.3",
     "cross-env": "^7.0.3",
     "cspell": "^8.4.0",
     "eslint": "^9.14.0",

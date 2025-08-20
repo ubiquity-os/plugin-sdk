@@ -398,6 +398,7 @@ describe("SDK actions tests", () => {
   });
 
   it("Should return the proper Kernel Key", () => {
+    // eslint-disable-next-line @ubiquity-os/no-empty-strings
     let options = getPluginOptions({ kernelPublicKey: "" });
     expect(options.kernelPublicKey).toEqual(KERNEL_PUBLIC_KEY);
     options = getPluginOptions({});

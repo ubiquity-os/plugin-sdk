@@ -95,6 +95,7 @@ export async function verifySignature(publicKeyPem: string, inputs: Inputs, sign
 }
 
 async function importRsaPrivateKey(pem: string) {
+  // eslint-disable-next-line @ubiquity-os/no-empty-strings
   const pemContents = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").trim();
   const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
 

@@ -1,4 +1,4 @@
-import { Type as T } from "@sinclair/typebox";
+import { StaticDecode, Type as T } from "@sinclair/typebox";
 import { commandCallSchema } from "./command";
 import { jsonType } from "./util";
 
@@ -12,3 +12,5 @@ export const inputSchema = T.Object({
   ref: T.String(),
   signature: T.String(),
 });
+
+export type InputSchema = StaticDecode<typeof inputSchema>;

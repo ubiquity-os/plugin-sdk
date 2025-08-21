@@ -27,6 +27,9 @@
       ],
       "helpers": [
         "dist/helpers.d.ts"
+      ],
+      "compression": [
+        "dist/compression.d.ts"
       ]
     }
   },
@@ -60,6 +63,11 @@
       "types": "./dist/helpers.d.ts",
       "import": "./dist/helpers.mjs",
       "require": "./dist/helpers.js"
+    },
+    "./compression": {
+      "types": "./dist/compression.d.ts",
+      "import": "./dist/compression.mjs",
+      "require": "./dist/compression.js"
     }
   },
   "files": [

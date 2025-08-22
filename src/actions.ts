@@ -8,6 +8,7 @@ import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { transformError } from "./error";
 import { getCommand } from "./helpers/command";
+import { compressString } from "./helpers/compression";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { inputSchema } from "./types/input-schema";
@@ -114,7 +115,7 @@ async function returnDataToKernel(repoToken: string, stateId: string, output: Ha
     event_type: "return-data-to-ubiquity-os-kernel",
     client_payload: {
       state_id: stateId,
-      output: output ? JSON.stringify(output) : null,
+      output: output ? compressString(JSON.stringify(output)) : null,
     },
   });
 }

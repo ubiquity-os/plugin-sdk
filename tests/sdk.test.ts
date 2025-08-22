@@ -4,6 +4,7 @@ import * as crypto from "crypto";
 import { http, HttpResponse } from "msw";
 import { KERNEL_PUBLIC_KEY } from "../src/constants";
 import { Context } from "../src/context";
+import { compressString } from "../src/helpers/compression";
 import { retry } from "../src/helpers/retry";
 import { createPlugin } from "../src/server";
 import { signPayload } from "../src/signature";
@@ -288,7 +289,7 @@ describe("SDK actions tests", () => {
       repo: repo.repo,
       client_payload: {
         state_id: "stateId",
-        output: JSON.stringify(expectedResult),
+        output: compressString(JSON.stringify(expectedResult)),
       },
     });
   });
@@ -392,7 +393,7 @@ describe("SDK actions tests", () => {
       repo: repo.repo,
       client_payload: {
         state_id: "stateId",
-        output: JSON.stringify({ event: issueCommentedEvent.eventName }),
+        output: compressString(JSON.stringify({ event: issueCommentedEvent.eventName })),
       },
     });
   });

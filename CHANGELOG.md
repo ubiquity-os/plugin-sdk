@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.2.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.11...v3.2.0) (2025-08-23)
+
+
+### Features
+
+* add compression method helper for large event payloads ([8c617e3](https://github.com/ubiquity-os/plugin-sdk/commit/8c617e30b5855d0e9ea3acab1223129af25e6995))
+* switch to brotli for compression in helpers ([dae3952](https://github.com/ubiquity-os/plugin-sdk/commit/dae39525139a78ec28906b16cc856696d6d3a839))
+
+
+### Bug Fixes
+
+* the checks run fully and errors have been fixed ([71ddbb5](https://github.com/ubiquity-os/plugin-sdk/commit/71ddbb584db0991502314265cbc3fcff9a556ae9))
+
 ## [3.1.11](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.10...v3.1.11) (2025-07-22)
 
 

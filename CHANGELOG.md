@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.2.0...v3.2.1) (2025-08-23)
+
+
+### Bug Fixes
+
+* the payload gets decompressed for Action payloads ([20113ee](https://github.com/ubiquity-os/plugin-sdk/commit/20113eed94c087cee2fac27c1bd6ab77bffc6366))
+
 ## [3.2.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.11...v3.2.0) (2025-08-23)
 
 

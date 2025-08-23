@@ -83,7 +83,7 @@ describe("Post comment tests", () => {
     const { CommentHandler } = await import("../src");
     const commentHandler = new CommentHandler();
     const logger = new Logs("debug");
-    let body = await commentHandler.createCommentBody(
+    let body = commentHandler.createCommentBody(
       {
         logger,
         payload: {},
@@ -99,7 +99,7 @@ describe("Post comment tests", () => {
 }
 -->
 `);
-    body = await commentHandler.createCommentBody(
+    body = commentHandler.createCommentBody(
       {
         logger,
         payload: {},

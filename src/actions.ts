@@ -7,6 +7,8 @@ import { config } from "dotenv";
 import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { transformError } from "./error";
+import { getCommand } from "./helpers/command";
+import { compressString } from "./helpers/compression";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { inputSchema } from "./types/input-schema";
@@ -14,6 +16,22 @@ import { HandlerReturn } from "./types/sdk";
 import { getPluginOptions, Options } from "./util";
 
 config();
+
+async function handleError(context: Context, pluginOptions: Options, error: unknown) {
+  console.error(error);
+
+  const loggerError = transformError(context, error);
+
+  if (loggerError instanceof LogReturn) {
+    core.setFailed(loggerError.logMessage.diff);
+  } else if (loggerError instanceof Error) {
+    core.setFailed(loggerError);
+  }
+
+  if (pluginOptions.postCommentOnError && loggerError) {
+    await context.commentHandler.postComment(context, loggerError);
+  }
+}
 
 export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCommand = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
   handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => HandlerReturn,
@@ -67,17 +85,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     env = process.env as TEnv;
   }
 
-  let command: TCommand | null = null;
-  if (inputs.command && pluginOptions.commandSchema) {
-    try {
-      command = Value.Decode(pluginOptions.commandSchema, Value.Default(pluginOptions.commandSchema, inputs.command));
-    } catch (e) {
-      console.dir(...Value.Errors(pluginOptions.commandSchema, inputs.command), { depth: null });
-      throw e;
-    }
-  } else if (inputs.command) {
-    command = inputs.command as TCommand;
-  }
+  const command = getCommand<TCommand>(inputs, pluginOptions);
 
   const context: Context<TConfig, TEnv, TCommand, TSupportedEvents> = {
     eventName: inputs.eventName as TSupportedEvents,
@@ -95,19 +103,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     core.setOutput("result", result);
     await returnDataToKernel(pluginGithubToken, inputs.stateId, result);
   } catch (error) {
-    console.error(error);
-
-    const loggerError = transformError(context, error);
-
-    if (loggerError instanceof LogReturn) {
-      core.setFailed(loggerError.logMessage.diff);
-    } else if (loggerError instanceof Error) {
-      core.setFailed(loggerError);
-    }
-
-    if (pluginOptions.postCommentOnError && loggerError) {
-      await context.commentHandler.postComment(context, loggerError);
-    }
+    await handleError(context, pluginOptions, error);
   }
 }
 
@@ -119,7 +115,7 @@ async function returnDataToKernel(repoToken: string, stateId: string, output: Ha
     event_type: "return-data-to-ubiquity-os-kernel",
     client_payload: {
       state_id: stateId,
-      output: output ? JSON.stringify(output) : null,
+      output: output ? compressString(JSON.stringify(output)) : null,
     },
   });
 }

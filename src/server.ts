@@ -7,6 +7,7 @@ import { HTTPException } from "hono/http-exception";
 import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { transformError } from "./error";
+import { getCommand } from "./helpers/command";
 import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
@@ -14,6 +15,18 @@ import { inputSchema } from "./types/input-schema";
 import { Manifest } from "./types/manifest";
 import { HandlerReturn } from "./types/sdk";
 import { getPluginOptions, Options } from "./util";
+
+async function handleError(context: Context, pluginOptions: Options, error: unknown) {
+  console.error(error);
+
+  const loggerError = transformError(context, error);
+
+  if (pluginOptions.postCommentOnError && loggerError) {
+    await context.commentHandler.postComment(context, loggerError);
+  }
+
+  throw new HTTPException(500, { message: "Unexpected error" });
+}
 
 export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unknown, TSupportedEvents extends WebhookEventName = WebhookEventName>(
   handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => HandlerReturn,
@@ -73,17 +86,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
     const workerName = new URL(inputs.ref).hostname.split(".")[0];
     PluginRuntimeInfo.getInstance({ ...env, CLOUDFLARE_WORKER_NAME: workerName });
 
-    let command: TCommand | null = null;
-    if (inputs.command && pluginOptions.commandSchema) {
-      try {
-        command = Value.Decode(pluginOptions.commandSchema, Value.Default(pluginOptions.commandSchema, inputs.command));
-      } catch (e) {
-        console.log(...Value.Errors(pluginOptions.commandSchema, inputs.command), { depth: null });
-        throw e;
-      }
-    } else if (inputs.command) {
-      command = inputs.command as TCommand;
-    }
+    const command = getCommand<TCommand>(inputs, pluginOptions);
 
     const context: Context<TConfig, TEnv, TCommand, TSupportedEvents> = {
       eventName: inputs.eventName as TSupportedEvents,
@@ -100,15 +103,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       const result = await handler(context);
       return ctx.json({ stateId: inputs.stateId, output: result ?? {} });
     } catch (error) {
-      console.error(error);
-
-      const loggerError = transformError(context, error);
-
-      if (pluginOptions.postCommentOnError && loggerError) {
-        await context.commentHandler.postComment(context, loggerError);
-      }
-
-      throw new HTTPException(500, { message: "Unexpected error" });
+      await handleError(context, pluginOptions, error);
     }
   });
 

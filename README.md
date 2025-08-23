@@ -26,6 +26,7 @@ The `postComment` function enables users to easily post a comment to an issue, a
 To set up the project locally, `bun` is the preferred package manager.
 
 1. Install the dependencies:
+
    ```sh
    bun install
    ```
@@ -35,9 +36,9 @@ To set up the project locally, `bun` is the preferred package manager.
    bun sdk:build
    ```
 3. Link it locally to another plugin
-    ```
-    bun link
-    ```
+   ```
+   bun link
+   ```
 
 ## Scripts
 

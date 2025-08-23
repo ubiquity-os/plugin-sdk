@@ -8,6 +8,7 @@ export default defineConfig({
     signature: "src/signature.ts",
     octokit: "src/octokit.ts",
     helpers: "src/helpers/index.ts",
+    compression: "src/helpers/compression.ts",
   },
   format: ["cjs", "esm"],
   outDir: "dist",

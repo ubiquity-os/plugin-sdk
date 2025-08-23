@@ -5,7 +5,7 @@ import { jsonType } from "./util";
 export const inputSchema = T.Object({
   stateId: T.String(),
   eventName: T.String(),
-  eventPayload: jsonType(T.Record(T.String(), T.Any())),
+  eventPayload: jsonType(T.Record(T.String(), T.Any()), true),
   command: jsonType(commandCallSchema),
   authToken: T.String(),
   settings: jsonType(T.Record(T.String(), T.Any())),

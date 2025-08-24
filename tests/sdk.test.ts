@@ -46,7 +46,7 @@ async function getInputs(
   const inputs = {
     stateId,
     eventName,
-    eventPayload: JSON.stringify(eventPayload),
+    eventPayload: compressString(JSON.stringify(eventPayload)),
     settings: JSON.stringify(settings),
     authToken,
     ref,

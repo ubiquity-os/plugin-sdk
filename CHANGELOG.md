@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.2.1...v3.2.2) (2025-08-24)
+
+
+### Bug Fixes
+
+* removed external brotli in favor of nodejs builtin ([e75b7b2](https://github.com/ubiquity-os/plugin-sdk/commit/e75b7b228ebfe2b28eadc899093ca8c192f6b773))
+
 ## [3.2.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.2.0...v3.2.1) (2025-08-23)
 
 

@@ -13,6 +13,11 @@ export interface Options {
    * @deprecated This disables signature verification - only for local development
    */
   bypassSignatureVerification?: boolean;
+  /*
+   * Should the end of the run trigger a dispatch back to the kernel?
+   * Only works for Action runs at the moment.
+   */
+  returnDataToKernel?: boolean;
 }
 
 export function sanitizeMetadata(obj: LogReturn["metadata"]): string {
@@ -30,5 +35,6 @@ export function getPluginOptions(options: Options | undefined) {
     commandSchema: options?.commandSchema,
     // eslint-disable-next-line sonarjs/deprecation
     bypassSignatureVerification: options?.bypassSignatureVerification || false,
+    returnDataToKernel: options?.returnDataToKernel ?? true,
   };
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.3.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.2.2...v3.3.0) (2025-08-26)
+
+
+### Features
+
+* returning data to the kernel can be set through the options ([a638926](https://github.com/ubiquity-os/plugin-sdk/commit/a6389267d34c5767c29cd4d2f905fa03770e57d8))
+
+
+### Bug Fixes
+
+* the correct options are consider to return the data to the kernel ([c65ea05](https://github.com/ubiquity-os/plugin-sdk/commit/c65ea05d15fd5ba1d332e99a2ec806a7dde0f4fa))
+
 ## [3.2.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.2.1...v3.2.2) (2025-08-24)
 
 

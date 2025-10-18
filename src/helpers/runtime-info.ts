@@ -18,7 +18,14 @@ export abstract class PluginRuntimeInfo {
           PluginRuntimeInfo._instance = new CfRuntimeInfo(env);
           break;
         case "deno":
-          PluginRuntimeInfo._instance = new DenoRuntimeInfo(env);
+          // Even if we are in Deno, we need to use the Node runtime within GitHub Actions because it does not actually
+          // run within Deno. CI should be a good indicator of the Action environment being used.
+          // https://docs.github.com/en/actions/reference/workflows-and-actions/variables#default-environment-variables
+          if (process.env.CI) {
+            PluginRuntimeInfo._instance = new NodeRuntimeInfo(env);
+          } else {
+            PluginRuntimeInfo._instance = new DenoRuntimeInfo(env);
+          }
           break;
         case "node":
           PluginRuntimeInfo._instance = new NodeRuntimeInfo(env);

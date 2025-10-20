@@ -4,3 +4,4 @@ export type { Context } from "./context";
 export { createPlugin } from "./server";
 export type { Options } from "./util";
 export { cleanMarkdown } from "./markdown";
+export { sanitizeLlmResponse } from "./sanitize";

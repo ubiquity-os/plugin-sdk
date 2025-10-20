@@ -1,5 +1,83 @@
 # Changelog
 
+## [3.3.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.1...v3.3.2) (2025-10-20)
+
+
+### Miscellaneous Chores
+
+* release 3.3.2 ([8aeebd2](https://github.com/ubiquity-os/plugin-sdk/commit/8aeebd220d0ad3a08de4a84adc0adae39b0e0ae8))
+
+## [3.3.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.0...v3.3.1) (2025-10-20)
+
+
+### Bug Fixes
+
+* compress the payload ([0dd1ea2](https://github.com/ubiquity-os/plugin-sdk/commit/0dd1ea2b040afff9c2ecb07b52f9a5f51ecef759))
+* compress the payload ([2af98ae](https://github.com/ubiquity-os/plugin-sdk/commit/2af98ae8877134bb5d4668a167978234b5f1073c))
+* we now use Actions environment when running Deno in GitHub runners ([71a3d67](https://github.com/ubiquity-os/plugin-sdk/commit/71a3d676990e67d77dcc5d2a426dc7dc02452369))
+
+## [3.3.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.2.2...v3.3.0) (2025-08-26)
+
+
+### Features
+
+* returning data to the kernel can be set through the options ([a638926](https://github.com/ubiquity-os/plugin-sdk/commit/a6389267d34c5767c29cd4d2f905fa03770e57d8))
+
+
+### Bug Fixes
+
+* the correct options are consider to return the data to the kernel ([c65ea05](https://github.com/ubiquity-os/plugin-sdk/commit/c65ea05d15fd5ba1d332e99a2ec806a7dde0f4fa))
+
+## [3.2.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.2.1...v3.2.2) (2025-08-24)
+
+
+### Bug Fixes
+
+* removed external brotli in favor of nodejs builtin ([e75b7b2](https://github.com/ubiquity-os/plugin-sdk/commit/e75b7b228ebfe2b28eadc899093ca8c192f6b773))
+
+## [3.2.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.2.0...v3.2.1) (2025-08-23)
+
+
+### Bug Fixes
+
+* the payload gets decompressed for Action payloads ([20113ee](https://github.com/ubiquity-os/plugin-sdk/commit/20113eed94c087cee2fac27c1bd6ab77bffc6366))
+
+## [3.2.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.11...v3.2.0) (2025-08-23)
+
+
+### Features
+
+* add compression method helper for large event payloads ([8c617e3](https://github.com/ubiquity-os/plugin-sdk/commit/8c617e30b5855d0e9ea3acab1223129af25e6995))
+* switch to brotli for compression in helpers ([dae3952](https://github.com/ubiquity-os/plugin-sdk/commit/dae39525139a78ec28906b16cc856696d6d3a839))
+
+
+### Bug Fixes
+
+* the checks run fully and errors have been fixed ([71ddbb5](https://github.com/ubiquity-os/plugin-sdk/commit/71ddbb584db0991502314265cbc3fcff9a556ae9))
+
+## [3.1.11](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.10...v3.1.11) (2025-07-22)
+
+
+### Miscellaneous Chores
+
+* release 3.1.11 ([b2b9bda](https://github.com/ubiquity-os/plugin-sdk/commit/b2b9bda6bead53720f33a821f58ed5cba4394dd0))
+
+## [3.1.10](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.9...v3.1.10) (2025-07-22)
+
+
+### Bug Fixes
+
+* expose comment body creation and invocation logic ([079d953](https://github.com/ubiquity-os/plugin-sdk/commit/079d953040921658ea9c3d734b8039c3dccc8b97))
+* expose comment body creation and invocation logic ([a87c812](https://github.com/ubiquity-os/plugin-sdk/commit/a87c81288ab52044b19adaab6d269274c746f3b5))
+
+## [3.1.9](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.8...v3.1.9) (2025-07-09)
+
+
+### Bug Fixes
+
+* remove unused empty string checker ([7164fe0](https://github.com/ubiquity-os/plugin-sdk/commit/7164fe03c542754b2b5474f9e5da61ae3e4b8e6a))
+* removed octokit rest package import ([a7f3bc9](https://github.com/ubiquity-os/plugin-sdk/commit/a7f3bc9aeef571973f33e5203d013188fc4e7d4c))
+
 ## [3.1.8](https://github.com/ubiquity-os/plugin-sdk/compare/v3.1.7...v3.1.8) (2025-05-30)
 
 

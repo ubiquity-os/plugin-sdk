@@ -1,7 +1,7 @@
 export { createActionsPlugin } from "./actions";
 export { CommentHandler } from "./comment";
 export type { Context } from "./context";
-export { createPlugin } from "./server";
-export type { Options } from "./util";
 export { cleanMarkdown } from "./markdown";
-export { sanitizeLlmResponse } from "./sanitize";
+export { createPlugin } from "./server";
+export { sanitizeLlmResponse } from "./util";
+export type { Options } from "./util";

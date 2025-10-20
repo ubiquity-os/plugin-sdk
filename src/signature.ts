@@ -1,5 +1,6 @@
 import { EmitterWebhookEvent, EmitterWebhookEventName } from "@octokit/webhooks";
 import { CommandCall } from "./types/command";
+import { compressString } from "./helpers/compression";
 
 export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEventName> {
   private _privateKey: string;
@@ -35,7 +36,7 @@ export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEvent
     const inputs = {
       stateId: this.stateId,
       eventName: this.eventName,
-      eventPayload: JSON.stringify(this.eventPayload),
+      eventPayload: compressString(JSON.stringify(this.eventPayload)),
       settings: JSON.stringify(this.settings),
       authToken: this.authToken,
       ref: this.ref,

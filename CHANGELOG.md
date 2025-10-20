@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.3.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.0...v3.3.1) (2025-10-20)
+
+
+### Bug Fixes
+
+* compress the payload ([0dd1ea2](https://github.com/ubiquity-os/plugin-sdk/commit/0dd1ea2b040afff9c2ecb07b52f9a5f51ecef759))
+* compress the payload ([2af98ae](https://github.com/ubiquity-os/plugin-sdk/commit/2af98ae8877134bb5d4668a167978234b5f1073c))
+* we now use Actions environment when running Deno in GitHub runners ([71a3d67](https://github.com/ubiquity-os/plugin-sdk/commit/71a3d676990e67d77dcc5d2a426dc7dc02452369))
+
 ## [3.3.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.2.2...v3.3.0) (2025-08-26)
 
 

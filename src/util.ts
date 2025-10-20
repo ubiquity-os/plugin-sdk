@@ -24,6 +24,9 @@ export function sanitizeMetadata(obj: LogReturn["metadata"]): string {
   return JSON.stringify(obj, null, 2).replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/--/g, "&#45;&#45;");
 }
 
+/**
+ * Removes wrapper backticks or fenced blocks that LLMs often return around payloads.
+ */
 export function sanitizeLlmResponse(input: string): string {
   const trimmed = input.trim();
 

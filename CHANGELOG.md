@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.2...v3.3.3) (2025-10-20)
+
+
+### Bug Fixes
+
+* add NPM_CONFIG_TOKEN to release-please workflow for consistent auth ([90b99b5](https://github.com/ubiquity-os/plugin-sdk/commit/90b99b5d9f5f24c788a00a949b52a83244ddc6d7))
+
 ## [3.3.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.1...v3.3.2) (2025-10-20)
 
 

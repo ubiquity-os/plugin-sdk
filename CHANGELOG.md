@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.3.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.3...v3.3.4) (2025-10-21)
+
+
+### Bug Fixes
+
+* remove NPM_CONFIG_TOKEN to release-please workflow for consistent auth ([59703c6](https://github.com/ubiquity-os/plugin-sdk/commit/59703c672c7822cb3d0cab7ec5747e9c136b21d3))
+* remove NPM_CONFIG_TOKEN to release-please workflow for consistent auth ([dd2af0f](https://github.com/ubiquity-os/plugin-sdk/commit/dd2af0f557a6fa120ebf239d18d16b21cbb715ef))
+
+
+### Miscellaneous Chores
+
+* release 3.3.3 ([85ce729](https://github.com/ubiquity-os/plugin-sdk/commit/85ce72986c2f89e7b35f168e0ccd7219eacb8745))
+* release 3.3.4 ([eceb713](https://github.com/ubiquity-os/plugin-sdk/commit/eceb713ba349e7909784950e22a871f0180dd6a9))
+
 ## [3.3.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.3...v3.3.3) (2025-10-21)
 
 

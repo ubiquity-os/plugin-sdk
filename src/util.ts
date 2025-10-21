@@ -41,7 +41,8 @@ export function sanitizeLlmResponse(input: string): string {
       result = result.slice(0, -3);
 
       // Remove any trailing newline characters (\r, \n, or both)
-      result = result.replace(/[\r\n]+$/, '');
+      // eslint-disable-next-line sonarjs/slow-regex
+      result = result.replace(/[\r\n]+$/, "");
     }
 
     return result.trim();

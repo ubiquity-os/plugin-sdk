@@ -35,7 +35,7 @@ export function sanitizeLlmResponse(input: string): string {
   }
 
   if (trimmed.startsWith("```")) {
-    let result = trimmed.replace(/^```[a-z0-9+-]*\s*\n?/i, "");
+    let result = trimmed.replace(/^```[a-z0-9+-]*\s*(?:\r\n|\n)?/i, "");
 
     if (result.endsWith("```")) {
       result = result.slice(0, -3);

@@ -40,9 +40,8 @@ export function sanitizeLlmResponse(input: string): string {
     if (result.endsWith("```")) {
       result = result.slice(0, -3);
 
-      if (result.endsWith("\r")) {
-        result = result.slice(0, -1);
-      }
+      // Remove any trailing newline characters (\r, \n, or both)
+      result = result.replace(/[\r\n]+$/, '');
     }
 
     return result.trim();

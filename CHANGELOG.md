@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.4...v3.4.0) (2025-10-27)
+
+
+### Features
+
+* sanitize LLM responses ([291f7c3](https://github.com/ubiquity-os/plugin-sdk/commit/291f7c355b0e17b901b9dfb0dbb1e9fe77c05e8d))
+
 ## [3.3.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.3...v3.3.4) (2025-10-21)
 
 

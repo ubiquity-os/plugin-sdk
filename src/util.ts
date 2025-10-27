@@ -24,6 +24,37 @@ export function sanitizeMetadata(obj: LogReturn["metadata"]): string {
   return JSON.stringify(obj, null, 2).replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/--/g, "&#45;&#45;");
 }
 
+/**
+ * Removes wrapper backticks or fenced blocks that LLMs often return around payloads.
+ */
+export function sanitizeLlmResponse(input: string): string {
+  const trimmed = input.trim();
+
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("```")) {
+    let result = trimmed.replace(/^```[a-z0-9+-]*\s*(?:\r\n|\n)?/i, "");
+
+    if (result.endsWith("```")) {
+      result = result.slice(0, -3);
+
+      // Remove any trailing newline characters (\r, \n, or both)
+      // eslint-disable-next-line sonarjs/slow-regex
+      result = result.replace(/[\r\n]+$/, "");
+    }
+
+    return result.trim();
+  }
+
+  if (trimmed.startsWith("`") && trimmed.endsWith("`")) {
+    return trimmed.slice(1, -1).trim();
+  }
+
+  return trimmed;
+}
+
 export function getPluginOptions(options: Options | undefined) {
   return {
     // Important to use || and not ?? to not consider empty strings

@@ -186,9 +186,9 @@ describe("SDK worker tests", () => {
       body: `> [!CAUTION]
 > test error
 
-<!-- UbiquityOS - createPlugin.name - 1234 - @gentlementlegen - http://localhost
+<!-- UbiquityOS - error - 1234 - @gentlementlegen - http://localhost
 {
-  "caller": "createPlugin.name"
+  "caller": "error"
 }
 -->
 `,

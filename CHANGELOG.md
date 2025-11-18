@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.4.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.1...v3.4.2) (2025-11-18)
+
+
+### Bug Fixes
+
+* changed Jest to use `swc` ([f191499](https://github.com/ubiquity-os/plugin-sdk/commit/f191499c24690b176e26e002efadbdd4514687b0))
+* dts build now works with newest types ([d494a01](https://github.com/ubiquity-os/plugin-sdk/commit/d494a010d89cb52f66288bab59c9d6b238f7e72a))
+
 ## [3.4.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.0...v3.4.1) (2025-11-18)
 
 

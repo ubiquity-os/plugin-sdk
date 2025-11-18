@@ -21,6 +21,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Build
+        run: bun sdk:build
+
       - name: Jest With Coverage
         run: bun install && bun run jest:test
 

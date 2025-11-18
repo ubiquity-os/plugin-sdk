@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.0...v3.4.1) (2025-11-18)
+
+
+### Bug Fixes
+
+* bumped packages ([f120b18](https://github.com/ubiquity-os/plugin-sdk/commit/f120b18df1577db8b9f69e50b97be8793e1e9cf6))
+
 ## [3.4.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.4...v3.4.0) (2025-10-27)
 
 

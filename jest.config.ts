@@ -2,12 +2,7 @@ import type { Config } from "jest";
 
 const cfg: Config = {
   transform: {
-    "^.+\\.tsx?$": [
-      "ts-jest",
-      {
-        useESM: true,
-      },
-    ],
+    "^.+\\.tsx?$": "@swc/jest",
   },
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   coveragePathIgnorePatterns: ["node_modules", "mocks"],

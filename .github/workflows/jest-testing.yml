@@ -21,11 +21,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install deps
+        run: bun install
+
       - name: Build
         run: bun sdk:build
 
       - name: Jest With Coverage
-        run: bun install && bun run jest:test
+        run: bun run jest:test
 
       - name: Add Jest Report to Summary
         if: always()

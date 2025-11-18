@@ -93,9 +93,9 @@ describe("Post comment tests", () => {
     expect(body).toEqual(`> [!TIP]
 > My cool message
 
-<!-- UbiquityOS - Object.<anonymous> - 1.0.0 - @UbiquityOS - https://localhost
+<!-- UbiquityOS - Object.ok - 1.0.0 - @UbiquityOS - https://localhost
 {
-  "caller": "Object.&lt;anonymous&gt;"
+  "caller": "Object.ok"
 }
 -->
 `);
@@ -109,9 +109,9 @@ describe("Post comment tests", () => {
     );
     expect(body).toEqual(`My cool message
 
-<!-- UbiquityOS - Object.<anonymous> - 1.0.0 - @UbiquityOS - https://localhost
+<!-- UbiquityOS - Object.ok - 1.0.0 - @UbiquityOS - https://localhost
 {
-  "caller": "Object.&lt;anonymous&gt;"
+  "caller": "Object.ok"
 }
 -->
 `);

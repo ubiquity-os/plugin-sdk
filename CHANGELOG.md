@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.3...v3.4.4) (2025-11-23)
+
+
+### Bug Fixes
+
+* improve Options interface with generics ([fc81434](https://github.com/ubiquity-os/plugin-sdk/commit/fc8143416542de4672f5f6d91564234bb28bf038))
+
 ## [3.4.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.2...v3.4.3) (2025-11-23)
 
 

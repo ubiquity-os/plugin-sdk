@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.5](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.4...v3.4.5) (2025-11-23)
+
+
+### Bug Fixes
+
+* added generic for option ([3255671](https://github.com/ubiquity-os/plugin-sdk/commit/32556716f63ed7a80f2eba666b56f5c716cf796f))
+
 ## [3.4.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.3...v3.4.4) (2025-11-23)
 
 

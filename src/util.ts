@@ -2,11 +2,11 @@ import { TAnySchema, TSchema } from "@sinclair/typebox";
 import { LOG_LEVEL, LogLevel, LogReturn } from "@ubiquity-os/ubiquity-os-logger";
 import { KERNEL_PUBLIC_KEY } from "./constants";
 
-export interface Options<TEnvSchema extends TSchema = TAnySchema, TCommandSchema extends TSchema = TAnySchema> {
+export interface Options<TEnvSchema extends TSchema = TAnySchema, TSettingsSchema extends TSchema = TAnySchema, TCommandSchema extends TSchema = TAnySchema> {
   kernelPublicKey?: string;
   logLevel?: LogLevel;
   postCommentOnError?: boolean;
-  settingsSchema?: TAnySchema;
+  settingsSchema?: TSettingsSchema;
   envSchema?: TEnvSchema;
   commandSchema?: TCommandSchema;
   /**

@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.6](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.5...v3.4.6) (2025-11-23)
+
+
+### Bug Fixes
+
+* pin @sinclair/typebox peerDependency version ([bbca0e7](https://github.com/ubiquity-os/plugin-sdk/commit/bbca0e707898265db0d44bc1b3f39686b0461fd5))
+
 ## [3.4.5](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.4...v3.4.5) (2025-11-23)
 
 

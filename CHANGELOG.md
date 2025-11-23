@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.4.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.2...v3.4.3) (2025-11-23)
+
+
+### Bug Fixes
+
+* bump jest-related dependencies to latest versions ([9886c23](https://github.com/ubiquity-os/plugin-sdk/commit/9886c238ff1ad33c1ab8f3c8b8e5b74f7e32e8d8))
+* update packages ([bae0bc4](https://github.com/ubiquity-os/plugin-sdk/commit/bae0bc496fa2e0770470b063edf30a598c0f076c))
+
 ## [3.4.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.1...v3.4.2) (2025-11-18)
 
 

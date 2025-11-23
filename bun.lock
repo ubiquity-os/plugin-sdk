@@ -54,7 +54,7 @@
         "typescript-eslint": "^8.47.0",
       },
       "peerDependencies": {
-        "@sinclair/typebox": "^0.34.41",
+        "@sinclair/typebox": "0.34.41",
       },
     },
   },

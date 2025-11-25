@@ -23,6 +23,10 @@ export class ConfigurationHandler {
 
   constructor(private readonly _logger: ILogger) {}
 
+  public async getSelfConfiguration(context: Context, location?: Location) {
+    return this.getConfiguration(context, location);
+  }
+
   public async getConfiguration(context: Context, location?: Location) {
     const defaultConfiguration = Value.Decode(configSchema, Value.Default(configSchema, {}));
 

@@ -18,4 +18,5 @@ export default defineConfig({
   clean: true,
   dts: true,
   legacyOutput: false,
+  removeNodeProtocol: false,
 });

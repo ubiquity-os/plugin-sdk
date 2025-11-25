@@ -15,7 +15,6 @@ type Location = { owner: string; repo: string };
 export interface ILogger {
   debug(message: string, metadata?: Record<string, unknown>): void;
   error(message: string, metadata?: Record<string, unknown>): void;
-  trace(message: string, metadata?: Record<string, unknown>): void;
   info(message: string, metadata?: Record<string, unknown>): void;
 }
 
@@ -154,11 +153,11 @@ export class ConfigurationHandler {
   }
 
   parseYaml(context: Context, data: null | string) {
-    this._logger.trace("Will attempt to parse YAML data", { data });
+    this._logger.debug("Will attempt to parse YAML data", { data });
     try {
       if (data) {
         const parsedData = YAML.load(data);
-        this._logger.trace("Parsed yaml data", { parsedData });
+        this._logger.debug("Parsed yaml data", { parsedData });
         return { yaml: parsedData ?? null, errors: null };
       }
     } catch (error) {

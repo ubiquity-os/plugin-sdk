@@ -159,9 +159,6 @@ export class ConfigurationHandler {
         } else {
           this._logger.error("Failed to download the requested file", { err, owner, repository, filePath });
         }
-        if (i >= pathList.length) {
-          return null;
-        }
       }
     }
     return null;

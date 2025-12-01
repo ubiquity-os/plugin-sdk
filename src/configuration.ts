@@ -1,6 +1,7 @@
 import { TransformDecodeCheckError, Value } from "@sinclair/typebox/value";
 import YAML, { YAMLException } from "js-yaml";
 import { Buffer } from "node:buffer";
+import * as fs from "node:fs";
 import { configSchema, GithubPlugin, parsePluginIdentifier, PluginConfiguration, PluginSettings } from "./configuration/schema";
 import { Context } from "./context";
 import { Manifest, manifestSchema } from "./types/manifest";
@@ -24,7 +25,11 @@ export class ConfigurationHandler {
   constructor(private readonly _logger: ILogger) {}
 
   public async getSelfConfiguration(context: Context, location?: Location) {
-    return this.getConfiguration(context, location);
+    const cfg = await this.getConfiguration(context, location);
+    const manifest: Manifest = JSON.parse(fs.readFileSync("./manifest.json", "utf-8"));
+    const name = manifest.short_name.split("@")[0];
+    const selfConfig = Object.keys(cfg.plugins).find((key) => key.startsWith(name));
+    return selfConfig ? cfg.plugins[selfConfig] : null;
   }
 
   public async getConfiguration(context: Context, location?: Location) {

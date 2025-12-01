@@ -1,7 +1,7 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-  entry: ["src/index.ts"],
+  entry: [],
   project: ["src/**/*.ts"],
   ignore: ["**/__mocks__/**", "**/__fixtures__/**"],
   ignoreExportsUsedInFile: true,

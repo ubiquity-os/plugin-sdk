@@ -58,6 +58,9 @@ const pluginInvocationSchema = T.Object(
 
 export const pluginChainSchema = T.Array(pluginInvocationSchema, { minItems: 1, default: [] });
 
+/**
+ * @public The PluginChain represents the callable version of the plugin item.
+ */
 export type PluginChain = StaticDecode<typeof pluginChainSchema>;
 
 // We accept null when a key has no following body

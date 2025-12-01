@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - uses: oven-sh/setup-bun@v2
 
@@ -19,3 +19,6 @@ jobs:
         run: |
           bun install
           bun run format
+
+      - name: Test build
+        run: bun sdk:build

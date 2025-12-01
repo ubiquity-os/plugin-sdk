@@ -14,5 +14,4 @@ export interface Context<TConfig = unknown, TEnv = unknown, TCommand = unknown, 
   env: TEnv;
   logger: Logs;
   commentHandler: CommentHandler;
-  environment?: "development" | "production";
 }

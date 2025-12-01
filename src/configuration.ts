@@ -1,7 +1,6 @@
 import { TransformDecodeCheckError, Value } from "@sinclair/typebox/value";
 import YAML, { YAMLException } from "js-yaml";
 import { Buffer } from "node:buffer";
-import * as fs from "node:fs";
 import { configSchema, GithubPlugin, parsePluginIdentifier, PluginConfiguration, PluginSettings } from "./configuration/schema";
 import { Context } from "./context";
 import { Manifest, manifestSchema } from "./types/manifest";
@@ -12,27 +11,29 @@ export const CONFIG_ORG_REPO = ".ubiquity-os";
 
 type Location = { owner: string; repo: string };
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export interface ILogger {
+export interface LoggerInterface {
   debug(message: string, metadata?: Record<string, unknown>): void;
   error(message: string, metadata?: Record<string, unknown>): void;
   info(message: string, metadata?: Record<string, unknown>): void;
+  warn(message: string, metadata?: Record<string, unknown>): void;
 }
 
 export class ConfigurationHandler {
   private _manifestCache: Record<string, Manifest> = {};
 
-  constructor(private readonly _logger: ILogger) {}
+  constructor(
+    private readonly _logger: LoggerInterface,
+    private readonly _octokit: Context["octokit"]
+  ) {}
 
-  public async getSelfConfiguration(context: Context, location?: Location) {
-    const cfg = await this.getConfiguration(context, location);
-    const manifest: Manifest = JSON.parse(fs.readFileSync("./manifest.json", "utf-8"));
+  public async getSelfConfiguration<T extends NonNullable<PluginSettings>["with"]>(manifest: Manifest, location?: Location): Promise<T | null> {
+    const cfg = await this.getConfiguration(location);
     const name = manifest.short_name.split("@")[0];
     const selfConfig = Object.keys(cfg.plugins).find((key) => key.startsWith(name));
-    return selfConfig ? cfg.plugins[selfConfig] : null;
+    return selfConfig && cfg.plugins[selfConfig] ? (cfg.plugins[selfConfig]["with"] as T) : null;
   }
 
-  public async getConfiguration(context: Context, location?: Location) {
+  public async getConfiguration(location?: Location) {
     const defaultConfiguration = Value.Decode(configSchema, Value.Default(configSchema, {}));
 
     if (!location) {
@@ -48,8 +49,8 @@ export class ConfigurationHandler {
       repo: `${owner}/${repo}`,
     });
 
-    const orgConfig = await this.getConfigurationFromRepo(context, CONFIG_ORG_REPO, owner);
-    const repoConfig = await this.getConfigurationFromRepo(context, owner, repo);
+    const orgConfig = await this.getConfigurationFromRepo(owner, CONFIG_ORG_REPO);
+    const repoConfig = await this.getConfigurationFromRepo(owner, repo);
 
     if (orgConfig.config) {
       mergedConfiguration = this.mergeConfigurations(mergedConfiguration, orgConfig.config);
@@ -63,7 +64,7 @@ export class ConfigurationHandler {
     this._logger.debug("Found plugins enabled", { repo: `${owner}/${repo}`, plugins: Object.keys(mergedConfiguration.plugins).length });
 
     for (const [pluginKey, pluginSettings] of Object.entries(mergedConfiguration.plugins)) {
-      let pluginIdentifier: string | GithubPlugin;
+      let pluginIdentifier: GithubPlugin;
       try {
         pluginIdentifier = parsePluginIdentifier(pluginKey);
       } catch (error) {
@@ -71,7 +72,7 @@ export class ConfigurationHandler {
         continue;
       }
 
-      const manifest = await this.getManifest(context, pluginIdentifier);
+      const manifest = await this.getManifest(pluginIdentifier);
 
       let runsOn = pluginSettings?.runsOn ?? [];
       let shouldSkipBotEvents = pluginSettings?.skipBotEvents;
@@ -98,9 +99,8 @@ export class ConfigurationHandler {
     };
   }
 
-  async getConfigurationFromRepo(context: Context, repository: string, owner: string) {
-    const rawData = await this.download({
-      context,
+  async getConfigurationFromRepo(owner: string, repository: string) {
+    const rawData = await this._download({
       repository,
       owner,
     });
@@ -111,7 +111,7 @@ export class ConfigurationHandler {
       return { config: null, errors: null, rawData: null };
     }
 
-    const { yaml, errors } = this.parseYaml(context, rawData);
+    const { yaml, errors } = this._parseYaml(rawData);
     const targetRepoConfiguration: PluginConfiguration | null = yaml as PluginConfiguration;
     this._logger.debug("Decoding configuration", { owner, repository });
     if (targetRepoConfiguration) {
@@ -134,34 +134,40 @@ export class ConfigurationHandler {
     return { config: null, errors, rawData };
   }
 
-  async download({ context, repository, owner }: { context: Context; repository: string; owner: string }): Promise<string | null> {
+  private async _download({ repository, owner }: { repository: string; owner: string }): Promise<string | null> {
     if (!repository || !owner) {
       this._logger.error("Repo or owner is not defined, cannot download the requested file");
       return null;
     }
-    const filePath = context.environment !== "development" ? CONFIG_FULL_PATH : DEV_CONFIG_FULL_PATH;
-    try {
-      this._logger.debug("Attempting to fetch configuration", { owner, repository, filePath });
-      const { data, headers } = await context.octokit.rest.repos.getContent({
-        owner,
-        repo: repository,
-        path: filePath,
-        mediaType: { format: "raw" },
-      });
-      this._logger.debug("Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"], data });
-      return data as unknown as string; // this will be a string if media format is raw
-    } catch (err) {
-      // In case of a missing config, do not log it as an error
-      if (err && typeof err === "object" && "status" in err && err.status === 404) {
-        this._logger.debug("No configuration file found", { owner, repository, filePath });
-      } else {
-        this._logger.error("Failed to download the requested file", { err, owner, repository, filePath });
+    const pathList = [CONFIG_FULL_PATH, DEV_CONFIG_FULL_PATH];
+    for (let i = 0; i < pathList.length; ++i) {
+      const filePath = pathList[i];
+      try {
+        this._logger.debug("Attempting to fetch configuration", { owner, repository, filePath });
+        const { data, headers } = await this._octokit.rest.repos.getContent({
+          owner,
+          repo: repository,
+          path: filePath,
+          mediaType: { format: "raw" },
+        });
+        this._logger.debug("Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"], data });
+        return data as unknown as string; // this will be a string if media format is raw
+      } catch (err) {
+        // In case of a missing config, do not log it as an error
+        if (err && typeof err === "object" && "status" in err && err.status === 404) {
+          this._logger.warn("No configuration file found", { owner, repository, filePath });
+        } else {
+          this._logger.error("Failed to download the requested file", { err, owner, repository, filePath });
+        }
+        if (i >= pathList.length) {
+          return null;
+        }
       }
-      return null;
     }
+    return null;
   }
 
-  parseYaml(context: Context, data: null | string) {
+  private _parseYaml(data: null | string) {
     this._logger.debug("Will attempt to parse YAML data", { data });
     try {
       if (data) {
@@ -189,17 +195,17 @@ export class ConfigurationHandler {
     };
   }
 
-  public getManifest(context: Context, plugin: string | GithubPlugin) {
-    return isGithubPlugin(plugin) ? this.fetchActionManifest(context, plugin) : this.fetchWorkerManifest(context, plugin);
+  public getManifest(plugin: GithubPlugin) {
+    return this._fetchActionManifest(plugin);
   }
 
-  async fetchActionManifest(context: Context, { owner, repo, ref }: GithubPlugin): Promise<Manifest | null> {
+  private async _fetchActionManifest({ owner, repo, ref }: GithubPlugin): Promise<Manifest | null> {
     const manifestKey = ref ? `${owner}:${repo}:${ref}` : `${owner}:${repo}`;
     if (this._manifestCache[manifestKey]) {
       return this._manifestCache[manifestKey];
     }
     try {
-      const { data } = await context.octokit.rest.repos.getContent({
+      const { data } = await this._octokit.rest.repos.getContent({
         owner,
         repo,
         path: "manifest.json",
@@ -208,34 +214,17 @@ export class ConfigurationHandler {
       if ("content" in data) {
         const content = Buffer.from(data.content, "base64").toString();
         const contentParsed = JSON.parse(content);
-        const manifest = this.decodeManifest(context, contentParsed);
+        const manifest = this.decodeManifest(contentParsed);
         this._manifestCache[manifestKey] = manifest;
         return manifest;
       }
     } catch (e) {
-      this._logger.error("Could not find a manifest for Action", { owner, repo, err: e });
+      this._logger.error("Could not find a valid manifest", { owner, repo, err: e });
     }
     return null;
   }
 
-  async fetchWorkerManifest(context: Context, url: string): Promise<Manifest | null> {
-    if (this._manifestCache[url]) {
-      return this._manifestCache[url];
-    }
-    const manifestUrl = `${url}/manifest.json`;
-    try {
-      const result = await fetch(manifestUrl);
-      const jsonData = await result.json();
-      const manifest = this.decodeManifest(context, jsonData);
-      this._manifestCache[url] = manifest;
-      return manifest;
-    } catch (e) {
-      this._logger.error("Could not find a manifest for Worker", { manifestUrl, err: e });
-    }
-    return null;
-  }
-
-  decodeManifest(context: Context, manifest: unknown) {
+  decodeManifest(manifest: unknown) {
     const errors = [...Value.Errors(manifestSchema, manifest)];
     if (errors.length) {
       for (const error of errors) {
@@ -246,8 +235,4 @@ export class ConfigurationHandler {
     const defaultManifest = Value.Default(manifestSchema, manifest);
     return defaultManifest as Manifest;
   }
-}
-
-export function isGithubPlugin(plugin: string | GithubPlugin): plugin is GithubPlugin {
-  return typeof plugin !== "string";
 }

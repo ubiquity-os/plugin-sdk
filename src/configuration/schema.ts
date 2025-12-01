@@ -10,17 +10,7 @@ export type GithubPlugin = {
   ref?: string;
 };
 
-const urlRegex = /^https?:\/\/\S+$/;
-
-export function isGithubPlugin(plugin: string | GithubPlugin): plugin is GithubPlugin {
-  return typeof plugin !== "string";
-}
-
-// eslint-disable-next-line sonarjs/function-return-type
-export function parsePluginIdentifier(value: string): string | GithubPlugin {
-  if (urlRegex.test(value)) {
-    return value;
-  }
+export function parsePluginIdentifier(value: string): GithubPlugin {
   const matches = RegExp(pluginNameRegex).exec(value);
   if (!matches) {
     throw new Error(`Invalid plugin name: ${value}`);

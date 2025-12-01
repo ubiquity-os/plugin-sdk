@@ -29,7 +29,7 @@ export class ConfigurationHandler {
   public async getSelfConfiguration<T extends NonNullable<PluginSettings>["with"]>(manifest: Manifest, location?: Location): Promise<T | null> {
     const cfg = await this.getConfiguration(location);
     const name = manifest.short_name.split("@")[0];
-    const selfConfig = Object.keys(cfg.plugins).find((key) => key.startsWith(name));
+    const selfConfig = Object.keys(cfg.plugins).find((key) => RegExp(new RegExp(`^${name}(?:$|@.+)`)).exec(key));
     return selfConfig && cfg.plugins[selfConfig] ? (cfg.plugins[selfConfig]["with"] as T) : null;
   }
 

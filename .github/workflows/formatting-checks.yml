@@ -21,4 +21,6 @@ jobs:
           bun run format
 
       - name: Test build
-        run: bun sdk:build
+        run: |
+          cat ./src/types/manifest.ts
+          bun run sdk:build

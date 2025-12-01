@@ -49,8 +49,8 @@ export class ConfigurationHandler {
       repo: `${owner}/${repo}`,
     });
 
-    const orgConfig = await this.getConfigurationFromRepo(owner, CONFIG_ORG_REPO);
-    const repoConfig = await this.getConfigurationFromRepo(owner, repo);
+    const orgConfig = await this._getConfigurationFromRepo(owner, CONFIG_ORG_REPO);
+    const repoConfig = await this._getConfigurationFromRepo(owner, repo);
 
     if (orgConfig.config) {
       mergedConfiguration = this.mergeConfigurations(mergedConfiguration, orgConfig.config);
@@ -99,7 +99,7 @@ export class ConfigurationHandler {
     };
   }
 
-  async getConfigurationFromRepo(owner: string, repository: string) {
+  private async _getConfigurationFromRepo(owner: string, repository: string) {
     const rawData = await this._download({
       repository,
       owner,
@@ -214,7 +214,7 @@ export class ConfigurationHandler {
       if ("content" in data) {
         const content = Buffer.from(data.content, "base64").toString();
         const contentParsed = JSON.parse(content);
-        const manifest = this.decodeManifest(contentParsed);
+        const manifest = this._decodeManifest(contentParsed);
         this._manifestCache[manifestKey] = manifest;
         return manifest;
       }
@@ -224,7 +224,7 @@ export class ConfigurationHandler {
     return null;
   }
 
-  decodeManifest(manifest: unknown) {
+  private _decodeManifest(manifest: unknown) {
     const errors = [...Value.Errors(manifestSchema, manifest)];
     if (errors.length) {
       for (const error of errors) {

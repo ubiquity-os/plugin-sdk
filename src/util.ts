@@ -1,14 +1,14 @@
-import { TAnySchema } from "@sinclair/typebox";
+import { TAnySchema, TSchema } from "@sinclair/typebox";
 import { LOG_LEVEL, LogLevel, LogReturn } from "@ubiquity-os/ubiquity-os-logger";
 import { KERNEL_PUBLIC_KEY } from "./constants";
 
-export interface Options {
+export interface Options<TEnvSchema extends TSchema = TAnySchema, TSettingsSchema extends TSchema = TAnySchema, TCommandSchema extends TSchema = TAnySchema> {
   kernelPublicKey?: string;
   logLevel?: LogLevel;
   postCommentOnError?: boolean;
-  settingsSchema?: TAnySchema;
-  envSchema?: TAnySchema;
-  commandSchema?: TAnySchema;
+  settingsSchema?: TSettingsSchema;
+  envSchema?: TEnvSchema;
+  commandSchema?: TCommandSchema;
   /**
    * @deprecated This disables signature verification - only for local development
    */

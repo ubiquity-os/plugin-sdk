@@ -45,7 +45,7 @@ export class ConfigurationHandler {
     let mergedConfiguration: PluginConfiguration = defaultConfiguration;
 
     this._logger.debug("Fetching configurations from the organization and repository", {
-      orgRepo: `${repo}/${CONFIG_ORG_REPO}`,
+      orgRepo: `${owner}/${CONFIG_ORG_REPO}`,
       repo: `${owner}/${repo}`,
     });
 

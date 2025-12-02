@@ -24,6 +24,7 @@ export interface LoggerInterface {
  **/
 export class ConfigurationHandler {
   private _manifestCache: Record<string, Manifest> = {};
+  private _manifestPromiseCache: Partial<Record<string, Promise<Manifest | null>>> = {};
 
   constructor(
     private readonly _logger: LoggerInterface,
@@ -214,24 +215,35 @@ export class ConfigurationHandler {
     if (this._manifestCache[manifestKey]) {
       return this._manifestCache[manifestKey];
     }
-    try {
-      const { data } = await this._octokit.rest.repos.getContent({
-        owner,
-        repo,
-        path: "manifest.json",
-        ref,
-      });
-      if ("content" in data) {
-        const content = Buffer.from(data.content, "base64").toString();
-        const contentParsed = JSON.parse(content);
-        const manifest = this._decodeManifest(contentParsed);
-        this._manifestCache[manifestKey] = manifest;
-        return manifest;
-      }
-    } catch (e) {
-      this._logger.error("Could not find a valid manifest", { owner, repo, err: e });
+    if (this._manifestPromiseCache[manifestKey]) {
+      return this._manifestPromiseCache[manifestKey];
     }
-    return null;
+    const manifestPromise = (async () => {
+      try {
+        const { data } = await this._octokit.rest.repos.getContent({
+          owner,
+          repo,
+          path: "manifest.json",
+          ref,
+        });
+        if ("content" in data) {
+          const content = Buffer.from(data.content, "base64").toString();
+          const contentParsed = JSON.parse(content);
+          const manifest = this._decodeManifest(contentParsed);
+          this._manifestCache[manifestKey] = manifest;
+          return manifest;
+        }
+      } catch (e) {
+        this._logger.error("Could not find a valid manifest", { owner, repo, err: e });
+      }
+      return null;
+    })();
+    this._manifestPromiseCache[manifestKey] = manifestPromise;
+    try {
+      return await manifestPromise;
+    } finally {
+      delete this._manifestPromiseCache[manifestKey];
+    }
   }
 
   private _decodeManifest(manifest: unknown) {

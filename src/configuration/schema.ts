@@ -11,7 +11,7 @@ export type GithubPlugin = {
 };
 
 export function parsePluginIdentifier(value: string): GithubPlugin {
-  const matches = RegExp(pluginNameRegex).exec(value);
+  const matches = pluginNameRegex.exec(value);
   if (!matches) {
     throw new Error(`Invalid plugin name: ${value}`);
   }

@@ -47,7 +47,7 @@ function createOctokitStub(configFiles: ConfigFileMap, manifests: ManifestMap): 
       repos: {
         getContent: async ({ owner, repo, path, ref }: GetContentParams) => {
           if (path === "manifest.json") {
-            const manifestKey = ref ? `${owner}/${repo}@${ref}` : `${owner}/${repo}`;
+            const manifestKey = ref ? `${owner}:${repo}:${ref}` : `${owner}:${repo}`;
             const manifest = manifests[manifestKey];
             if (!manifest) {
               throw notFound(manifestKey);
@@ -55,7 +55,7 @@ function createOctokitStub(configFiles: ConfigFileMap, manifests: ManifestMap): 
             const content = Buffer.from(JSON.stringify(manifest)).toString("base64");
             return { data: { content } };
           }
-          const key = `${owner}/${repo}/${path}`;
+          const key = `${owner}:${repo}:${path}`;
           if (!(key in configFiles)) {
             throw notFound(key);
           }
@@ -97,17 +97,17 @@ describe("ConfigurationHandler", () => {
     skipBotEvents: false
 `;
     const configFiles: ConfigFileMap = {
-      [`${owner}/.ubiquity-os/${CONFIG_PROD_FULL_PATH}`]: orgYaml,
-      [`${owner}/${repo}/${CONFIG_PROD_FULL_PATH}`]: repoYaml,
+      [`${owner}:.ubiquity-os:${CONFIG_PROD_FULL_PATH}`]: orgYaml,
+      [`${owner}:${repo}:${CONFIG_PROD_FULL_PATH}`]: repoYaml,
     };
     const manifests: ManifestMap = {
-      "ubiquity-os/example-plugin": {
+      "ubiquity-os:example-plugin": {
         name: "Example",
         short_name: "ubiquity-os/example-plugin@1.0.0",
         "ubiquity:listeners": ["issues.closed"],
         skipBotEvents: false,
       },
-      "ubiquity-os/new-plugin": {
+      "ubiquity-os:new-plugin": {
         name: "New",
         short_name: "ubiquity-os/new-plugin@1.0.0",
         "ubiquity:listeners": ["issues.opened"],

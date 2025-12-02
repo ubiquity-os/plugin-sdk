@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { Value } from "@sinclair/typebox/value";
-import { CONFIG_FULL_PATH, ConfigurationHandler, LoggerInterface } from "../src/configuration";
+import { CONFIG_PROD_FULL_PATH, ConfigurationHandler, LoggerInterface } from "../src/configuration";
 import { configSchema, PluginConfiguration } from "../src/configuration/schema";
 import { Context } from "../src/context";
 import { Manifest } from "../src/types/manifest";
@@ -97,8 +97,8 @@ describe("ConfigurationHandler", () => {
     skipBotEvents: false
 `;
     const configFiles: ConfigFileMap = {
-      [`${owner}/.ubiquity-os/${CONFIG_FULL_PATH}`]: orgYaml,
-      [`${owner}/${repo}/${CONFIG_FULL_PATH}`]: repoYaml,
+      [`${owner}/.ubiquity-os/${CONFIG_PROD_FULL_PATH}`]: orgYaml,
+      [`${owner}/${repo}/${CONFIG_PROD_FULL_PATH}`]: repoYaml,
     };
     const manifests: ManifestMap = {
       "ubiquity-os/example-plugin": {

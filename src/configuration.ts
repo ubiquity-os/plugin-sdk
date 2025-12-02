@@ -5,8 +5,8 @@ import { configSchema, GithubPlugin, parsePluginIdentifier, PluginConfiguration,
 import { Context } from "./context";
 import { Manifest, manifestSchema } from "./types/manifest";
 
-export const CONFIG_FULL_PATH = ".github/.ubiquity-os.config.yml";
-export const DEV_CONFIG_FULL_PATH = ".github/.ubiquity-os.config.dev.yml";
+export const CONFIG_PROD_FULL_PATH = ".github/.ubiquity-os.config.yml";
+export const CONFIG_DEV_FULL_PATH = ".github/.ubiquity-os.config.dev.yml";
 export const CONFIG_ORG_REPO = ".ubiquity-os";
 
 type Location = { owner: string; repo: string };
@@ -18,6 +18,10 @@ export interface LoggerInterface {
   warn(message: string, metadata?: Record<string, unknown>): void;
 }
 
+/**
+ * Handles fetching and managing plugin configurations from GitHub repositories.
+ * Prioritizes production configuration (`.ubiquity-os.config.yml`) over development configuration (`.ubiquity-os.config.dev.yml`).
+ **/
 export class ConfigurationHandler {
   private _manifestCache: Record<string, Manifest> = {};
 
@@ -26,6 +30,12 @@ export class ConfigurationHandler {
     private readonly _octokit: Context["octokit"]
   ) {}
 
+  /**
+   *  Retrieves the configuration for the current plugin based on its manifest.
+   *  @param manifest - The plugin manifest containing the `short_name` identifier
+   *  @param location - Optional repository location (`owner/repo`)
+   *  @returns The plugin's configuration or null if not found
+   **/
   public async getSelfConfiguration<T extends NonNullable<PluginSettings>["with"]>(manifest: Manifest, location?: Location): Promise<T | null> {
     const cfg = await this.getConfiguration(location);
     const name = manifest.short_name.split("@")[0].replaceAll("/", "\\/");
@@ -33,6 +43,10 @@ export class ConfigurationHandler {
     return selfConfig && cfg.plugins[selfConfig] ? (cfg.plugins[selfConfig]["with"] as T) : null;
   }
 
+  /*
+   * Gets the configuration for the given location, if provided. If not found or if no location is given, returns the
+   * default configuration instead.
+   */
   public async getConfiguration(location?: Location) {
     const defaultConfiguration = Value.Decode(configSchema, Value.Default(configSchema, {}));
 
@@ -139,9 +153,8 @@ export class ConfigurationHandler {
       this._logger.error("Repo or owner is not defined, cannot download the requested file");
       return null;
     }
-    const pathList = [CONFIG_FULL_PATH, DEV_CONFIG_FULL_PATH];
-    for (let i = 0; i < pathList.length; ++i) {
-      const filePath = pathList[i];
+    const pathList = [CONFIG_PROD_FULL_PATH, CONFIG_DEV_FULL_PATH];
+    for (const filePath of pathList) {
       try {
         this._logger.debug("Attempting to fetch configuration", { owner, repository, filePath });
         const { data, headers } = await this._octokit.rest.repos.getContent({

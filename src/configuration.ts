@@ -139,7 +139,7 @@ export class ConfigurationHandler {
         const errors = Value.Errors(configSchema, configSchemaWithDefaults);
         if (errors.First()) {
           for (const error of errors) {
-            this._logger.error("Configuration validation error", { err: error });
+            this._logger.warn("Configuration validation error", { err: error });
           }
         }
         const decodedConfig = Value.Decode(configSchema, configSchemaWithDefaults);

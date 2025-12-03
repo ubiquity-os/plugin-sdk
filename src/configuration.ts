@@ -37,16 +37,20 @@ export class ConfigurationHandler {
    *  @param location - Optional repository location (`owner/repo`)
    *  @returns The plugin's configuration or null if not found
    **/
-  public async getSelfConfiguration<T extends NonNullable<PluginSettings>["with"]>(manifest: Manifest, location?: Location): Promise<T | null> {
+  public async getSelfConfiguration<T extends NonNullable<PluginSettings>["with"]>(
+    manifest: Pick<Manifest, "short_name">,
+    location?: Location
+  ): Promise<T | null> {
     const cfg = await this.getConfiguration(location);
-    const name = manifest.short_name.split("@")[0].replaceAll("/", "\\/");
+    const name = manifest.short_name.split("@")[0];
     const selfConfig = Object.keys(cfg.plugins).find((key) => new RegExp(`^${name}(?:$|@.+)`).exec(key));
     return selfConfig && cfg.plugins[selfConfig] ? (cfg.plugins[selfConfig]["with"] as T) : null;
   }
 
-  /*
-   * Gets the configuration for the given location, if provided. If not found or if no location is given, returns the
-   * default configuration instead.
+  /**
+   * Retrieves and merges configuration from organization and repository levels.
+   * @param location - Optional repository location (`owner` and `repo`). If not provided, returns the default configuration.
+   * @returns The merged plugin configuration with resolved plugin settings.
    */
   public async getConfiguration(location?: Location) {
     const defaultConfiguration = Value.Decode(configSchema, Value.Default(configSchema, {}));

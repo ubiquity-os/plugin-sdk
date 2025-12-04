@@ -43,7 +43,7 @@ export class ConfigurationHandler {
   ): Promise<T | null> {
     const cfg = await this.getConfiguration(location);
     const name = manifest.short_name.split("@")[0];
-    const selfConfig = Object.keys(cfg.plugins).find((key) => new RegExp(`^${name}(?:$|@.+)`).exec(key));
+    const selfConfig = Object.keys(cfg.plugins).find((key) => new RegExp(`^${name}(?:$|@.+)`).exec(key.replace(/:[^@]+/, "")));
     return selfConfig && cfg.plugins[selfConfig] ? (cfg.plugins[selfConfig]["with"] as T) : null;
   }
 

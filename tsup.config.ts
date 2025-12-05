@@ -9,6 +9,7 @@ export default defineConfig({
     octokit: "src/octokit.ts",
     helpers: "src/helpers/index.ts",
     compression: "src/helpers/compression.ts",
+    configuration: "src/configuration.ts",
   },
   format: ["cjs", "esm"],
   outDir: "dist",
@@ -17,4 +18,5 @@ export default defineConfig({
   clean: true,
   dts: true,
   legacyOutput: false,
+  removeNodeProtocol: false,
 });

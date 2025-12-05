@@ -24,8 +24,9 @@ jobs:
       - name: Install deps
         run: bun install
 
-      - name: Build
-        run: bun sdk:build
+      - name: Test build
+        run: |
+          bun run sdk:build
 
       - name: Jest With Coverage
         run: bun run jest:test

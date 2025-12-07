@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.0...v3.5.1) (2025-12-07)
+
+
+### Bug Fixes
+
+* ensure default value for skipping bot events ([edd3dad](https://github.com/ubiquity-os/plugin-sdk/commit/edd3dadaeb97786f0190b00c5a3b8172f7a0df69))
+
 ## [3.5.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.6...v3.5.0) (2025-12-07)
 
 

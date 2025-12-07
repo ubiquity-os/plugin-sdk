@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.5.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.6...v3.5.0) (2025-12-07)
+
+
+### Features
+
+* add configuration handling and `js-yaml` integration ([6991739](https://github.com/ubiquity-os/plugin-sdk/commit/6991739d45347224a677ba24141b926b116dc7c8))
+
+
+### Bug Fixes
+
+* added `short_name` to the manifest schema ([e3316f1](https://github.com/ubiquity-os/plugin-sdk/commit/e3316f1b4f0a71e33319d54b520d91c66cc58bf0))
+
 ## [3.4.6](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.5...v3.4.6) (2025-11-23)
 
 

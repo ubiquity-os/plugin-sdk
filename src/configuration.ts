@@ -103,6 +103,8 @@ export class ConfigurationHandler {
         if (shouldSkipBotEvents === undefined) {
           shouldSkipBotEvents = manifest.skipBotEvents ?? true;
         }
+      } else {
+        shouldSkipBotEvents = true;
       }
 
       resolvedPlugins[pluginKey] = {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.3...v3.5.4) (2025-12-08)
+
+
+### Bug Fixes
+
+* add environment-based config prioritization and import extensions ([70f2514](https://github.com/ubiquity-os/plugin-sdk/commit/70f2514a3410b6989a803b7aaac3f7b2baa5a89b))
+
 ## [3.5.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.2...v3.5.3) (2025-12-08)
 
 

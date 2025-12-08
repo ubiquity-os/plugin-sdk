@@ -20,7 +20,8 @@ export interface LoggerInterface {
 
 /**
  * Handles fetching and managing plugin configurations from GitHub repositories.
- * Prioritizes production configuration (`.ubiquity-os.config.yml`) over development configuration (`.ubiquity-os.config.dev.yml`).
+ * Prioritizes production configuration (`.ubiquity-os.config.yml`) over development configuration (`.ubiquity-os.config.dev.yml`),
+ * except if the `_environment` value is provided to the constructor.
  **/
 export class ConfigurationHandler {
   private _manifestCache: Record<string, Manifest> = {};
@@ -28,7 +29,8 @@ export class ConfigurationHandler {
 
   constructor(
     private readonly _logger: LoggerInterface,
-    private readonly _octokit: Context["octokit"]
+    private readonly _octokit: Context["octokit"],
+    private readonly _environment: "development" | "production" | null = null
   ) {}
 
   /**
@@ -121,7 +123,7 @@ export class ConfigurationHandler {
   }
 
   /**
-   * Retrieves the configuration from the given owner/repository. Also returns the raw data and errors if any.
+   * Retrieves the configuration from the given owner/repository. Also returns the raw data and errors, if any.
    *
    * @param owner The repository owner
    * @param repository The repository name
@@ -166,7 +168,17 @@ export class ConfigurationHandler {
       this._logger.error("Repo or owner is not defined, cannot download the requested file");
       return null;
     }
-    const pathList = [CONFIG_PROD_FULL_PATH, CONFIG_DEV_FULL_PATH];
+    let pathList: string[];
+    switch (this._environment) {
+      case "development":
+        pathList = [CONFIG_DEV_FULL_PATH];
+        break;
+      case "production":
+        pathList = [CONFIG_PROD_FULL_PATH];
+        break;
+      default:
+        pathList = [CONFIG_PROD_FULL_PATH, CONFIG_DEV_FULL_PATH];
+    }
     for (const filePath of pathList) {
       try {
         this._logger.debug("Attempting to fetch configuration", { owner, repository, filePath });

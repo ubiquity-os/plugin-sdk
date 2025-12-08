@@ -71,7 +71,7 @@ const app = createPlugin(
       command: context.command,
     };
   },
-  { name: "test" },
+  { name: "test", short_name: "ubq/test@dev" },
   { kernelPublicKey: publicKey }
 );
 
@@ -94,7 +94,7 @@ describe("SDK worker tests", () => {
     });
     expect(res.status).toEqual(200);
     const result = await res.json();
-    expect(result).toEqual({ name: "test" });
+    expect(result).toEqual({ name: "test", short_name: "ubq/test@dev" });
   });
   it("Should deny POST request with different path", async () => {
     const res = await app.request("/test", {
@@ -146,7 +146,7 @@ describe("SDK worker tests", () => {
       )
     );
 
-    const { createPlugin } = await import("../src/server");
+    const { createPlugin } = await import("../src/server.js");
     const app = createPlugin(
       async (context: Context<{ shouldFail: boolean }>) => {
         if (context.config.shouldFail) {
@@ -157,7 +157,7 @@ describe("SDK worker tests", () => {
           event: context.eventName,
         };
       },
-      { name: "test" },
+      { name: "test", short_name: "ubq/test@dev" },
       { kernelPublicKey: publicKey }
     );
 
@@ -267,7 +267,7 @@ describe("SDK actions tests", () => {
         }
       },
     }));
-    const { createActionsPlugin } = await import("../src/actions");
+    const { createActionsPlugin } = await import("../src/actions.js");
 
     await createActionsPlugin(
       async (context: Context) => {
@@ -315,7 +315,7 @@ describe("SDK actions tests", () => {
       setOutput,
       setFailed,
     }));
-    const { createActionsPlugin } = await import("../src/actions");
+    const { createActionsPlugin } = await import("../src/actions.js");
 
     await createActionsPlugin(
       async (context: Context) => {
@@ -373,7 +373,7 @@ describe("SDK actions tests", () => {
         }
       },
     }));
-    const { createActionsPlugin } = await import("../src/actions");
+    const { createActionsPlugin } = await import("../src/actions.js");
 
     await createActionsPlugin(
       async (context: Context) => {

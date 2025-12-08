@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.1...v3.5.2) (2025-12-08)
+
+
+### Bug Fixes
+
+* expose the `getConfigurationFromRepo` method in the configuration handler ([46d2c1d](https://github.com/ubiquity-os/plugin-sdk/commit/46d2c1d2a5abb5156dc9a1bfa6765e280b396a3f))
+
 ## [3.5.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.0...v3.5.1) (2025-12-07)
 
 

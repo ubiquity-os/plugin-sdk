@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.2...v3.5.3) (2025-12-08)
+
+
+### Bug Fixes
+
+* handle null errors in configuration decoding ([e4b36f5](https://github.com/ubiquity-os/plugin-sdk/commit/e4b36f5126d18ce6b0257cbef7f21b216ff3f0a0))
+
 ## [3.5.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.1...v3.5.2) (2025-12-08)
 
 

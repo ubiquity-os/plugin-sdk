@@ -151,7 +151,7 @@ export class ConfigurationHandler {
           }
         }
         const decodedConfig = Value.Decode(configSchema, configSchemaWithDefaults);
-        return { config: decodedConfig, errors, rawData };
+        return { config: decodedConfig, errors: errors.First() ? errors : null, rawData };
       } catch (error) {
         this._logger.error("Error decoding configuration; Will ignore.", { err: error, owner, repository });
         return { config: null, errors: [error instanceof TransformDecodeCheckError ? error.error : error] as YAMLException[], rawData };

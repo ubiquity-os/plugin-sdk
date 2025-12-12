@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.5](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.4...v3.5.5) (2025-12-12)
+
+
+### Bug Fixes
+
+* add optional `homepage_url` field to manifest schema ([63915d1](https://github.com/ubiquity-os/plugin-sdk/commit/63915d13933b28020b09574feb86564eebcdf917))
+
 ## [3.5.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.3...v3.5.4) (2025-12-08)
 
 

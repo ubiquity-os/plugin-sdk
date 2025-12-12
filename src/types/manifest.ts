@@ -27,6 +27,7 @@ export const manifestSchema = T.Object({
   "ubiquity:listeners": T.Optional(T.Array(runEvent, { default: [] })),
   configuration: T.Optional(T.Record(T.String(), T.Any(), { default: {} })),
   skipBotEvents: T.Optional(T.Boolean({ default: true })),
+  homepage_url: T.Optional(T.String()),
 });
 
 export type Manifest = Static<typeof manifestSchema>;

@@ -8,6 +8,7 @@ export const inputSchema = T.Object({
   eventPayload: jsonType(T.Record(T.String(), T.Any()), true),
   command: jsonType(commandCallSchema),
   authToken: T.String(),
+  ubiquityKernelToken: T.Optional(T.String()),
   settings: jsonType(T.Record(T.String(), T.Any())),
   ref: T.String(),
   signature: T.String(),

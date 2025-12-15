@@ -20,4 +20,5 @@ export default defineConfig({
   dts: true,
   legacyOutput: false,
   removeNodeProtocol: false,
+  external: ["@actions/core", "@actions/github", "dotenv"],
 });

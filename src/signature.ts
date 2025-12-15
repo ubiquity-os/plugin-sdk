@@ -55,6 +55,7 @@ interface Inputs {
   eventName: unknown;
   eventPayload: unknown;
   authToken: unknown;
+  ubiquityKernelToken?: unknown;
   settings: unknown;
   ref: unknown;
   command: unknown;
@@ -68,6 +69,7 @@ export async function verifySignature(publicKeyPem: string, inputs: Inputs, sign
       eventPayload: inputs.eventPayload,
       settings: inputs.settings,
       authToken: inputs.authToken,
+      ubiquityKernelToken: (inputs as any).ubiquityKernelToken,
       ref: inputs.ref,
       command: inputs.command,
     };

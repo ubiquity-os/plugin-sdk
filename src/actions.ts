@@ -91,6 +91,8 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     eventName: inputs.eventName as TSupportedEvents,
     payload: inputs.eventPayload,
     command: command,
+    authToken: inputs.authToken,
+    ubiquityKernelToken: inputs.ubiquityKernelToken,
     octokit: new customOctokit({ auth: inputs.authToken }),
     config: config,
     env: env,

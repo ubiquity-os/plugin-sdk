@@ -39,17 +39,4 @@ export default createPlugin({
 });
 ```
 
-#### GitHub Actions
-
-Use the composite action:
-
-```yaml
-- uses: ./.github/actions/llm-call
-  with:
-    auth-token: ${{ inputs.authToken }}
-    owner: ${{ github.repository_owner }}
-    repo: ${{ github.event.repository.name }}
-    messages: '[{"role":"user","content":"Hello"}]'
-```
-
 Automatically extracts `authToken`, `owner`, `repo` from input and passes to ai.ubq.fi with proper headers for secure, repo-scoped access.

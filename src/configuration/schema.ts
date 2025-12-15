@@ -13,9 +13,9 @@ export type GithubPlugin = {
 /**
  * Parses a plugin identifier string into its constituent parts.
  * @param value - Plugin identifier in format: "owner/repo[:workflowId][@ref]"
- * @returns Parsed plugin information including owner, repo, workflowId (defaults to "compute.yml"), and optional ref
+ * @returns Parsed plugin information including owner, repo, workflowId (defaults to "dispatch.yml"), and optional ref
  * @throws Error if the plugin name format is invalid
- * @example parsePluginIdentifier("ubiquity-os/plugin-name") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "compute.yml" }
+ * @example parsePluginIdentifier("ubiquity-os/plugin-name") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "dispatch.yml" }
  * @example parsePluginIdentifier("ubiquity-os/plugin-name:custom.yml@v1.0.0") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "custom.yml", ref: "v1.0.0" }
  */
 export function parsePluginIdentifier(value: string): GithubPlugin {
@@ -26,7 +26,7 @@ export function parsePluginIdentifier(value: string): GithubPlugin {
   return {
     owner: matches[1],
     repo: matches[2],
-    workflowId: matches[3] || "compute.yml",
+    workflowId: matches[3] || "dispatch.yml",
     ref: matches[4] || undefined,
   };
 }

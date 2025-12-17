@@ -1,17 +1,25 @@
+import type {
+  ChatCompletion,
+  ChatCompletionChunk,
+  ChatCompletionCreateParamsNonStreaming,
+  ChatCompletionMessageParam,
+} from "openai/resources/chat/completions";
 import type { Context } from "../context";
 import type { PluginInput } from "../signature";
-import type { ChatCompletion, ChatCompletionChunk } from "openai/resources/chat/completions";
 
 export type LlmCallOptions = {
   baseUrl?: string;
   model?: string;
-  messages: Array<{ role: string; content: string }>;
   stream?: boolean;
-  // Extend with other OpenAI params as needed
-};
+  messages: ChatCompletionMessageParam[];
+} & Partial<Omit<ChatCompletionCreateParamsNonStreaming, "model" | "messages" | "stream">>;
 
 function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.trim().replace(/\/+$/, "");
+  let normalized = baseUrl.trim();
+  while (normalized.endsWith("/")) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
 }
 
 function getEnvString(name: string): string {
@@ -30,29 +38,28 @@ function getAiBaseUrl(options: LlmCallOptions): string {
   return "https://ai.ubq.fi";
 }
 
-export async function callLlm(
-  options: LlmCallOptions,
-  input: PluginInput | Context
-): Promise<ChatCompletion | AsyncIterable<ChatCompletionChunk>> {
-  const authToken = (input as any)?.authToken ?? "";
-  const ubiquityKernelToken = (input as any)?.ubiquityKernelToken ?? "";
-  const payload = (input as any)?.payload;
+export async function callLlm(options: LlmCallOptions, input: PluginInput | Context): Promise<ChatCompletion | AsyncIterable<ChatCompletionChunk>> {
+  const authToken = input.authToken;
+  const ubiquityKernelToken = "ubiquityKernelToken" in input ? input.ubiquityKernelToken : undefined;
+  const payload = "payload" in input ? input.payload : input.eventPayload;
   const owner = payload?.repository?.owner?.login ?? "";
   const repo = payload?.repository?.name ?? "";
   const installationId = payload?.installation?.id;
 
   if (!authToken) throw new Error("Missing authToken in inputs");
 
-  const requiresKernelToken = authToken.trim().startsWith("gh");
-  if (requiresKernelToken && !ubiquityKernelToken) {
+  const isKernelTokenRequired = authToken.trim().startsWith("gh");
+  if (isKernelTokenRequired && !ubiquityKernelToken) {
     throw new Error("Missing ubiquityKernelToken in inputs (kernel attestation is required for GitHub auth)");
   }
 
-  const url = `${getAiBaseUrl(options)}/v1/chat/completions`;
+  const { baseUrl, model, stream: isStream, messages, ...rest } = options;
+  const url = `${getAiBaseUrl({ ...options, baseUrl })}/v1/chat/completions`;
   const body = JSON.stringify({
-    model: options.model || "gpt-5.2-chat-latest",
-    messages: options.messages,
-    stream: options.stream ?? false,
+    ...rest,
+    ...(model ? { model } : {}),
+    messages,
+    stream: isStream ?? false,
   });
 
   const headers: Record<string, string> = {
@@ -75,20 +82,23 @@ export async function callLlm(
     throw new Error(`LLM API error: ${response.status} - ${err}`);
   }
 
-  if (options.stream) {
-    return parseSseStream(response.body!);
+  if (isStream) {
+    if (!response.body) {
+      throw new Error("LLM API error: missing response body for streaming request");
+    }
+    return parseSseStream(response.body);
   }
   return response.json();
 }
 
-async function* parseSseStream(body: ReadableStream<Uint8Array>): AsyncIterable<any> {
+async function* parseSseStream(body: ReadableStream<Uint8Array>): AsyncIterable<ChatCompletionChunk> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
   try {
     while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+      const { value, done: isDone } = await reader.read();
+      if (isDone) break;
       buffer += decoder.decode(value, { stream: true });
       const events = buffer.split("\n\n");
       buffer = events.pop() || "";
@@ -96,7 +106,7 @@ async function* parseSseStream(body: ReadableStream<Uint8Array>): AsyncIterable<
         if (event.startsWith("data: ")) {
           const data = event.slice(6);
           if (data === "[DONE]") return;
-          yield JSON.parse(data);
+          yield JSON.parse(data) as ChatCompletionChunk;
         }
       }
     }

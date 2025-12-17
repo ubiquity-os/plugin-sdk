@@ -69,7 +69,7 @@ export async function verifySignature(publicKeyPem: string, inputs: Inputs, sign
       eventPayload: inputs.eventPayload,
       settings: inputs.settings,
       authToken: inputs.authToken,
-      ubiquityKernelToken: (inputs as any).ubiquityKernelToken,
+      ubiquityKernelToken: inputs.ubiquityKernelToken,
       ref: inputs.ref,
       command: inputs.command,
     };

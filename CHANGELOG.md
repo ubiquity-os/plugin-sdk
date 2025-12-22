@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.6.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.6.1...v3.6.2) (2025-12-22)
+
+
+### Miscellaneous Chores
+
+* release 3.6.2
+
 ## [3.6.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.6.0...v3.6.1) (2025-12-22)
 
 

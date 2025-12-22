@@ -9,6 +9,7 @@ export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEvent
   public eventPayload: EmitterWebhookEvent<T>["payload"];
   public settings: unknown;
   public authToken: string;
+  public ubiquityKernelToken?: string;
   public ref: string;
   public command: CommandCall;
 
@@ -20,7 +21,8 @@ export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEvent
     settings: unknown,
     authToken: string,
     ref: string,
-    command: CommandCall
+    command: CommandCall,
+    ubiquityKernelToken?: string
   ) {
     this._privateKey = privateKey;
     this.stateId = stateId;
@@ -30,6 +32,7 @@ export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEvent
     this.authToken = authToken;
     this.ref = ref;
     this.command = command;
+    this.ubiquityKernelToken = ubiquityKernelToken;
   }
 
   public async getInputs() {
@@ -39,6 +42,7 @@ export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEvent
       eventPayload: compressString(JSON.stringify(this.eventPayload)),
       settings: JSON.stringify(this.settings),
       authToken: this.authToken,
+      ubiquityKernelToken: this.ubiquityKernelToken,
       ref: this.ref,
       command: JSON.stringify(this.command),
     };
@@ -55,6 +59,7 @@ interface Inputs {
   eventName: unknown;
   eventPayload: unknown;
   authToken: unknown;
+  ubiquityKernelToken?: unknown;
   settings: unknown;
   ref: unknown;
   command: unknown;
@@ -68,6 +73,7 @@ export async function verifySignature(publicKeyPem: string, inputs: Inputs, sign
       eventPayload: inputs.eventPayload,
       settings: inputs.settings,
       authToken: inputs.authToken,
+      ubiquityKernelToken: inputs.ubiquityKernelToken,
       ref: inputs.ref,
       command: inputs.command,
     };

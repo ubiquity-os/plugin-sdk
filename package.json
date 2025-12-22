@@ -33,6 +33,9 @@
       ],
       "configuration": [
         "dist/configuration.d.ts"
+      ],
+      "llm": [
+        "dist/llm.d.ts"
       ]
     }
   },
@@ -76,6 +79,11 @@
       "types": "./dist/configuration.d.ts",
       "import": "./dist/configuration.mjs",
       "require": "./dist/configuration.js"
+    },
+    "./llm": {
+      "types": "./dist/llm.d.ts",
+      "import": "./dist/llm.mjs",
+      "require": "./dist/llm.js"
     }
   },
   "files": [
@@ -113,7 +121,8 @@
     "@ubiquity-os/ubiquity-os-logger": "^1.4.0",
     "dotenv": "^17.2.3",
     "hono": "^4.10.6",
-    "js-yaml": "^4.1.1"
+    "js-yaml": "^4.1.1",
+    "openai": "^4.70.2"
   },
   "peerDependencies": {
     "@sinclair/typebox": "0.34.41"

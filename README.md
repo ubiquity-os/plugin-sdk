@@ -30,10 +30,26 @@ import { PluginInput, createPlugin, callLlm } from '@ubiquity-os/plugin-sdk';
 
 export default createPlugin({
   async onCommand(input: PluginInput) {
-    const result = await callLlm({
-      messages: [{ role: 'user', content: 'Hello, world!' }]
-    }, input);
-    // result is ChatCompletion or AsyncIterable<ChatCompletionChunk>
+    // Non-streaming: resolves to ChatCompletion.
+    const result = await callLlm(
+      {
+        messages: [{ role: 'user', content: 'Hello, world!' }]
+      },
+      input
+    );
+
+    // Streaming: returns AsyncIterable<ChatCompletionChunk>.
+    const stream = await callLlm(
+      {
+        messages: [{ role: 'user', content: 'Hello, world!' }],
+        stream: true
+      },
+      input
+    );
+    for await (const chunk of stream) {
+      const delta = chunk.choices?.[0]?.delta?.content ?? '';
+      // handle delta
+    }
     return { success: true };
   }
 });

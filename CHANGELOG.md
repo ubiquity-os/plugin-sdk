@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.6.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.5...v3.6.0) (2025-12-22)
+
+
+### Features
+
+* add callLlm helper ([#160](https://github.com/ubiquity-os/plugin-sdk/issues/160)) ([3fb7b29](https://github.com/ubiquity-os/plugin-sdk/commit/3fb7b29d13bf75b06e614746a288e7e161ddbf86))
+
 ## [3.5.5](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.4...v3.5.5) (2025-12-12)
 
 

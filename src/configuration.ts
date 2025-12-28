@@ -253,8 +253,7 @@ export class ConfigurationHandler {
         if ("content" in data) {
           const content = Buffer.from(data.content, "base64").toString();
           const contentParsed = JSON.parse(content);
-          const fallbackShortName = `${owner}/${repo}${ref ? "@" + ref : ""}`;
-          const manifest = this._decodeManifest(contentParsed, { name: `${owner}/${repo}`, short_name: fallbackShortName });
+          const manifest = this._decodeManifest(contentParsed);
           this._manifestCache[manifestKey] = manifest;
           return manifest;
         }
@@ -271,39 +270,15 @@ export class ConfigurationHandler {
     }
   }
 
-  private _decodeManifest(manifest: unknown, fallback: { name: string; short_name: string }) {
-    const normalized = this._normalizeManifest(manifest, fallback);
-    const errors = [...Value.Errors(manifestSchema, normalized)];
+  private _decodeManifest(manifest: unknown) {
+    const errors = [...Value.Errors(manifestSchema, manifest)];
     if (errors.length) {
       for (const error of errors) {
         this._logger.error("Manifest validation error", { error });
       }
       throw new Error("Manifest is invalid.");
     }
-    const defaultManifest = Value.Default(manifestSchema, normalized);
+    const defaultManifest = Value.Default(manifestSchema, manifest);
     return defaultManifest as Manifest;
-  }
-
-  private _normalizeManifest(manifest: unknown, fallback: { name: string; short_name: string }): unknown {
-    if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) return manifest;
-    const record = manifest as Record<string, unknown>;
-    const normalized: Record<string, unknown> = { ...record };
-
-    const name = typeof record.name === "string" && record.name.trim() ? record.name.trim() : fallback.name;
-    if (name) {
-      normalized.name = name;
-    }
-
-    let rawShortName = "";
-    if (typeof record.short_name === "string") {
-      rawShortName = record.short_name;
-    } else if (typeof record.shortName === "string") {
-      rawShortName = record.shortName;
-    }
-    const shortName = rawShortName.trim() || fallback.short_name || name || "unknown";
-    normalized.short_name = shortName;
-    delete normalized.shortName;
-
-    return normalized;
   }
 }

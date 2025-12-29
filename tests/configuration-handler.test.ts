@@ -75,7 +75,9 @@ describe("ConfigurationHandler", () => {
     const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub({}, {}));
     const config = await handler.getConfiguration();
     const defaultConfig = Value.Decode(configSchema, Value.Default(configSchema, {}));
-    expect(config).toEqual(defaultConfig);
+    const expected = { ...defaultConfig } as PluginConfiguration & { imports?: string[] };
+    delete expected.imports;
+    expect(config).toEqual(expected);
   });
 
   it("merges organization and repository configs while enriching plugins with manifest defaults", async () => {
@@ -161,5 +163,71 @@ describe("ConfigurationHandler", () => {
     const missing = await handler.getSelfConfiguration<{ token: string }>(otherManifest);
     expect(current).toEqual({ token: "secret" });
     expect(missing).toBeNull();
+  });
+
+  it("resolves imports before merging repository configuration", async () => {
+    const owner = "acme";
+    const repo = "demo";
+    const orgYaml = `imports:
+  - acme/shared-config
+plugins:
+  "ubiquity-os/example-plugin":
+    with:
+      level: 1
+`;
+    const orgImportYaml = `plugins:
+  "ubiquity-os/example-plugin":
+    with:
+      level: 3
+  "ubiquity-os/extra-plugin":
+    with:
+      enabled: true
+`;
+    const repoYaml = `imports:
+  - acme/repo-shared
+plugins:
+  "ubiquity-os/example-plugin":
+    with:
+      level: 2
+`;
+    const repoImportYaml = `plugins:
+  "ubiquity-os/repo-plugin":
+    with:
+      flag: true
+`;
+
+    const configFiles: ConfigFileMap = {
+      [`${owner}:.ubiquity-os:${CONFIG_PROD_FULL_PATH}`]: orgYaml,
+      [`${owner}:shared-config:${CONFIG_PROD_FULL_PATH}`]: orgImportYaml,
+      [`${owner}:${repo}:${CONFIG_PROD_FULL_PATH}`]: repoYaml,
+      [`${owner}:repo-shared:${CONFIG_PROD_FULL_PATH}`]: repoImportYaml,
+    };
+    const manifests: ManifestMap = {
+      "ubiquity-os:example-plugin": {
+        name: "Example",
+        short_name: "ubiquity-os/example-plugin@1.0.0",
+        "ubiquity:listeners": [],
+        skipBotEvents: true,
+      },
+      "ubiquity-os:extra-plugin": {
+        name: "Extra",
+        short_name: "ubiquity-os/extra-plugin@1.0.0",
+        "ubiquity:listeners": [],
+        skipBotEvents: true,
+      },
+      "ubiquity-os:repo-plugin": {
+        name: "Repo",
+        short_name: "ubiquity-os/repo-plugin@1.0.0",
+        "ubiquity:listeners": [],
+        skipBotEvents: true,
+      },
+    };
+
+    const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub(configFiles, manifests));
+    const config = await handler.getConfiguration({ owner, repo });
+
+    expect(config.plugins["ubiquity-os/example-plugin"]?.with).toEqual({ level: 2 });
+    expect(config.plugins["ubiquity-os/extra-plugin"]?.with).toEqual({ enabled: true });
+    expect(config.plugins["ubiquity-os/repo-plugin"]?.with).toEqual({ flag: true });
   });
 });

@@ -1,14 +1,14 @@
 import * as core from "@actions/core";
-import * as github from "@actions/github";
 import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
 import { Value } from "@sinclair/typebox/value";
-import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
+import { Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { config } from "dotenv";
 import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { transformError } from "./error";
 import { getCommand } from "./helpers/command";
 import { compressString } from "./helpers/compression";
+import { getGithubContext } from "./helpers/github-context";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { inputSchema } from "./types/input-schema";
@@ -22,11 +22,7 @@ async function handleError(context: Context, pluginOptions: Options, error: unkn
 
   const loggerError = transformError(context, error);
 
-  if (loggerError instanceof LogReturn) {
-    core.setFailed(loggerError.logMessage.diff);
-  } else if (loggerError instanceof Error) {
-    core.setFailed(loggerError);
-  }
+  core.setFailed(loggerError.logMessage.diff);
 
   if (pluginOptions.postCommentOnError && loggerError) {
     await context.commentHandler.postComment(context, loggerError);
@@ -45,7 +41,8 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     return;
   }
 
-  const body = github.context.payload.inputs;
+  const githubContext = getGithubContext();
+  const body = githubContext.payload.inputs;
   const inputSchemaErrors = [...Value.Errors(inputSchema, body)];
   if (inputSchemaErrors.length) {
     console.dir(inputSchemaErrors, { depth: null });
@@ -112,10 +109,11 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
 }
 
 async function returnDataToKernel(repoToken: string, stateId: string, output: HandlerReturn) {
+  const githubContext = getGithubContext();
   const octokit = new customOctokit({ auth: repoToken });
   await octokit.rest.repos.createDispatchEvent({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
+    owner: githubContext.repo.owner,
+    repo: githubContext.repo.repo,
     event_type: "return-data-to-ubiquity-os-kernel",
     client_payload: {
       state_id: stateId,

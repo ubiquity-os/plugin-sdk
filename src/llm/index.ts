@@ -25,6 +25,17 @@ function normalizeBaseUrl(baseUrl: string): string {
   return normalized;
 }
 
+const MAX_LLM_RETRIES = 2;
+const RETRY_BACKOFF_MS = [250, 750];
+
+function getRetryDelayMs(attempt: number): number {
+  return RETRY_BACKOFF_MS[Math.min(attempt, RETRY_BACKOFF_MS.length - 1)] ?? 750;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function getEnvString(name: string): string {
   if (typeof process === "undefined" || !process?.env) return EMPTY_STRING;
   return String(process.env[name] ?? EMPTY_STRING).trim();
@@ -43,7 +54,11 @@ function getAiBaseUrl(options: LlmCallOptions): string {
 
 export async function callLlm(options: LlmCallOptions, input: PluginInput | Context): Promise<ChatCompletion | AsyncIterable<ChatCompletionChunk>> {
   const authToken = String(input.authToken ?? EMPTY_STRING).trim();
-  if (!authToken) throw new Error("Missing authToken in input");
+  if (!authToken) {
+    const err = new Error("Missing authToken in input");
+    (err as Error & { status?: number }).status = 401;
+    throw err;
+  }
 
   const kernelToken = "ubiquityKernelToken" in input ? input.ubiquityKernelToken : undefined;
   const payload = getPayload(input);
@@ -67,13 +82,7 @@ export async function callLlm(options: LlmCallOptions, input: PluginInput | Cont
     ubiquityKernelToken: kernelToken,
   });
 
-  const response = await fetch(url, { method: "POST", headers, body });
-  if (!response.ok) {
-    const err = await response.text();
-    const error = new Error(`LLM API error: ${response.status} - ${err}`);
-    (error as Error & { status?: number }).status = response.status;
-    throw error;
-  }
+  const response = await fetchWithRetry(url, { method: "POST", headers, body }, MAX_LLM_RETRIES);
 
   if (isStream) {
     if (!response.body) {
@@ -87,18 +96,49 @@ export async function callLlm(options: LlmCallOptions, input: PluginInput | Cont
 function ensureKernelToken(authToken: string, kernelToken?: string) {
   const isKernelTokenRequired = authToken.startsWith("gh");
   if (isKernelTokenRequired && !kernelToken) {
-    throw new Error("Missing ubiquityKernelToken in input (kernel attestation is required for GitHub auth)");
+    const err = new Error("Missing ubiquityKernelToken in input (kernel attestation is required for GitHub auth)");
+    (err as Error & { status?: number }).status = 401;
+    throw err;
   }
 }
 
 function ensureMessages(messages: ChatCompletionMessageParam[]) {
   if (!Array.isArray(messages) || messages.length === 0) {
-    throw new Error("messages must be a non-empty array");
+    const err = new Error("messages must be a non-empty array");
+    (err as Error & { status?: number }).status = 400;
+    throw err;
   }
 }
 
 function buildAiUrl(options: LlmCallOptions, baseUrl?: string): string {
   return `${getAiBaseUrl({ ...options, baseUrl })}/v1/chat/completions`;
+}
+
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries: number): Promise<Response> {
+  let attempt = 0;
+  let lastError: unknown;
+  while (attempt <= maxRetries) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+
+      const errText = await response.text();
+      if (response.status >= 500 && attempt < maxRetries) {
+        await sleep(getRetryDelayMs(attempt));
+        attempt += 1;
+        continue;
+      }
+      const error = new Error(`LLM API error: ${response.status} - ${errText}`);
+      (error as Error & { status?: number }).status = response.status;
+      throw error;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= maxRetries) throw error;
+      await sleep(getRetryDelayMs(attempt));
+      attempt += 1;
+    }
+  }
+  throw lastError ?? new Error("LLM API error: request failed after retries");
 }
 
 function getPayload(input: PluginInput | Context): unknown {
@@ -175,7 +215,7 @@ function getEventData(event: string): string | null {
   if (!event.trim()) return null;
   const dataLines = event.split("\n").filter((line) => line.startsWith("data:"));
   if (!dataLines.length) return null;
-  const data = dataLines.map((line) => (line.startsWith("data: ") ? line.slice(6) : line.slice(5).replace(/^ /, ""))).join("\n");
+  const data = dataLines.map((line) => (line.startsWith("data: ") ? line.slice(6) : line.slice(5).replace(/^ /, EMPTY_STRING))).join("\n");
   return data || null;
 }
 

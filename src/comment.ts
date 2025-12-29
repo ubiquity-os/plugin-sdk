@@ -1,6 +1,7 @@
 import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { LogReturn, Metadata } from "@ubiquity-os/ubiquity-os-logger";
 import { Context } from "./context";
+import { getErrorStatus } from "./error";
 import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { sanitizeMetadata } from "./util";
 
@@ -29,6 +30,16 @@ interface IssueContext {
   commentId?: number;
   owner: string;
   repo: string;
+}
+
+function logByStatus(logger: Context["logger"], message: string, status: number | null, metadata: Record<string, unknown>): LogReturn {
+  const payload = { ...metadata, ...(status ? { status } : {}) };
+  if (status && status >= 500) return logger.error(message, payload);
+  if (status && status >= 400) return logger.warn(message, payload);
+  if (status && status >= 300) return logger.debug(message, payload);
+  if (status && status >= 200) return logger.ok(message, payload);
+  if (status && status >= 100) return logger.info(message, payload);
+  return logger.error(message, payload);
 }
 
 export class CommentHandler {
@@ -127,15 +138,19 @@ export class CommentHandler {
         name: message.name,
         stack: message.stack,
       };
-      return { metadata, logMessage: context.logger.error(message.message).logMessage };
+      const status = getErrorStatus(message);
+      const logReturn = logByStatus(context.logger, message.message, status, metadata);
+      return { metadata: { ...metadata, ...(status ? { status } : {}) }, logMessage: logReturn.logMessage };
     }
 
+    const stackLine = message.metadata?.error?.stack?.split("\n")[2];
+    const callerMatch = stackLine ? /at (\S+)/.exec(stackLine) : null;
     const metadata = message.metadata
       ? {
           ...message.metadata,
           message: message.metadata.message,
           stack: message.metadata.stack || message.metadata.error?.stack,
-          caller: message.metadata.caller || message.metadata.error?.stack?.split("\n")[2]?.match(/at (\S+)/)?.[1],
+          caller: message.metadata.caller || callerMatch?.[1],
         }
       : { ...message };
 

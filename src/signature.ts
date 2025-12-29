@@ -73,7 +73,7 @@ export async function verifySignature(publicKeyPem: string, inputs: Inputs, sign
       ref: inputs.ref,
       command: inputs.command,
     };
-    const pemContents = publicKeyPem.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").trim();
+    const pemContents = publicKeyPem.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replace(/\s+/g, "");
     const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
 
     const publicKey = await crypto.subtle.importKey(
@@ -99,7 +99,7 @@ export async function verifySignature(publicKeyPem: string, inputs: Inputs, sign
 
 async function importRsaPrivateKey(pem: string) {
   // eslint-disable-next-line @ubiquity-os/no-empty-strings
-  const pemContents = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").trim();
+  const pemContents = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replace(/\s+/g, "");
   const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
 
   return await crypto.subtle.importKey(

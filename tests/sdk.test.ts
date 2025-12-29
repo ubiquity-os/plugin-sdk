@@ -3,12 +3,11 @@ import { EmitterWebhookEventName } from "@octokit/webhooks";
 import * as crypto from "crypto";
 import { http, HttpResponse } from "msw";
 import { KERNEL_PUBLIC_KEY } from "../src/constants";
-import { Context } from "../src/context";
 import { compressString } from "../src/helpers/compression";
 import { retry } from "../src/helpers/retry";
-import { createPlugin } from "../src/server";
 import { signPayload } from "../src/signature";
-import { CommandCall } from "../src/types/command";
+import type { Context } from "../src/context";
+import type { CommandCall } from "../src/types/command";
 import { getPluginOptions } from "../src/util";
 import { server } from "./__mocks__/node";
 import issueCommented from "./__mocks__/requests/issue-comment-post.json";
@@ -30,9 +29,15 @@ const issueCommentedEvent = {
   eventPayload: issueCommented.eventPayload,
 };
 
-const sdkOctokitImportPath = "../src/octokit";
-const githubActionImportPath = "@actions/github";
-const githubCoreImportPath = "@actions/core";
+const githubContextKey = "__UOS_GITHUB_CONTEXT__";
+
+function setGithubContext(context: Record<string, unknown>) {
+  (globalThis as { __UOS_GITHUB_CONTEXT__?: Record<string, unknown> })[githubContextKey] = context;
+}
+
+function clearGithubContext() {
+  delete (globalThis as { __UOS_GITHUB_CONTEXT__?: Record<string, unknown> })[githubContextKey];
+}
 
 async function getInputs(
   stateId: string,
@@ -60,26 +65,30 @@ async function getInputs(
   };
 }
 
-const app = createPlugin(
-  async (context: Context<{ shouldFail: boolean }>) => {
-    if (context.config.shouldFail) {
-      throw context.logger.error("test error");
-    }
-    return {
-      success: true,
-      event: context.eventName,
-      command: context.command,
-    };
-  },
-  { name: "test", short_name: "ubq/test@dev" },
-  { kernelPublicKey: publicKey }
-);
+async function createTestApp() {
+  const { createPlugin } = await import("../src/server.js");
+  return createPlugin(
+    async (context: Context<{ shouldFail: boolean }>) => {
+      if (context.config.shouldFail) {
+        throw context.logger.error("test error");
+      }
+      return {
+        success: true,
+        event: context.eventName,
+        command: context.command,
+      };
+    },
+    { name: "test", short_name: "ubq/test@dev" },
+    { kernelPublicKey: publicKey }
+  );
+}
 
 beforeAll(async () => {
   server.listen();
 });
 
 afterEach(() => {
+  clearGithubContext();
   server.resetHandlers();
   jest.resetModules();
   jest.restoreAllMocks();
@@ -89,6 +98,7 @@ afterAll(() => server.close());
 
 describe("SDK worker tests", () => {
   it("Should serve manifest", async () => {
+    const app = await createTestApp();
     const res = await app.request("/manifest.json", {
       method: "GET",
     });
@@ -97,12 +107,14 @@ describe("SDK worker tests", () => {
     expect(result).toEqual({ name: "test", short_name: "ubq/test@dev" });
   });
   it("Should deny POST request with different path", async () => {
+    const app = await createTestApp();
     const res = await app.request("/test", {
       method: "POST",
     });
     expect(res.status).toEqual(404);
   });
   it("Should deny POST request without content-type", async () => {
+    const app = await createTestApp();
     const res = await app.request("/", {
       method: "POST",
     });
@@ -111,6 +123,7 @@ describe("SDK worker tests", () => {
   it("Should deny POST request with invalid signature", async () => {
     const inputs = await getInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, { shouldFail: false }, "test", "main", null);
 
+    const app = await createTestApp();
     const res = await app.request("/", {
       headers: {
         "content-type": "application/json",
@@ -121,18 +134,17 @@ describe("SDK worker tests", () => {
     expect(res.status).toEqual(400);
   });
   it("Should handle thrown errors", async () => {
-    jest.unstable_mockModule(githubActionImportPath, () => ({
-      default: {
-        context: {
-          runId: "1",
-          payload: {
-            inputs: {},
-          },
-          repo: "repo",
-          sha: "1234",
-        },
+    const githubContext = {
+      runId: "1",
+      payload: {
+        inputs: {},
       },
-    }));
+      sha: "1234",
+      repo: {
+        owner: "ubiquity",
+        repo: "ubiquity-os-kernel",
+      },
+    };
     const createComment = jest.fn();
     server.use(
       http.post(
@@ -146,21 +158,6 @@ describe("SDK worker tests", () => {
       )
     );
 
-    const { createPlugin } = await import("../src/server.js");
-    const app = createPlugin(
-      async (context: Context<{ shouldFail: boolean }>) => {
-        if (context.config.shouldFail) {
-          throw context.logger.error("test error");
-        }
-        return {
-          success: true,
-          event: context.eventName,
-        };
-      },
-      { name: "test", short_name: "ubq/test@dev" },
-      { kernelPublicKey: publicKey }
-    );
-
     const inputs = await getInputs(
       "stateId",
       issueCommentedEvent.eventName,
@@ -170,7 +167,8 @@ describe("SDK worker tests", () => {
       "http://localhost:4000",
       null
     );
-
+    setGithubContext(githubContext);
+    const app = await createTestApp();
     const res = await app.request("/", {
       headers: {
         "content-type": "application/json",
@@ -183,16 +181,12 @@ describe("SDK worker tests", () => {
       issue_number: 5,
       owner: "ubiquity-os",
       repo: "bot",
-      body: `> [!CAUTION]
-> test error
-
-<!-- UbiquityOS - error - 1234 - @gentlementlegen - http://localhost
-{
-  "caller": "error"
-}
--->
-`,
+      body: expect.any(String),
     });
+    const [commentArgs] = createComment.mock.calls[0] ?? [];
+    expect(commentArgs.body).toContain("> [!CAUTION]\n> test error");
+    expect(commentArgs.body).toMatch(/<!-- UbiquityOS - .+ - 1234 - @gentlementlegen - http:\/\/localhost/);
+    expect(commentArgs.body).toMatch(/"caller": ".+"/);
   });
   it("Should accept correct request", async () => {
     const inputs = await getInputs(
@@ -208,6 +202,7 @@ describe("SDK worker tests", () => {
       }
     );
 
+    const app = await createTestApp();
     const res = await app.request("/", {
       headers: {
         "content-type": "application/json",
@@ -226,6 +221,7 @@ describe("SDK worker tests", () => {
 
 describe("SDK actions tests", () => {
   process.env.PLUGIN_GITHUB_TOKEN = "token";
+  process.env.GITHUB_REPOSITORY = "ubiquity/ubiquity-os-kernel";
   const repo = {
     owner: "ubiquity",
     repo: "ubiquity-os-kernel",
@@ -236,39 +232,34 @@ describe("SDK actions tests", () => {
       name: "test",
       parameters: { param1: "test" },
     });
-    jest.unstable_mockModule(githubActionImportPath, () => ({
-      default: {},
-      context: {
-        runId: "1",
-        payload: {
-          inputs: githubInputs,
-        },
-        repo: repo,
-        sha: "1234",
+    const githubContext = {
+      runId: "1",
+      payload: {
+        inputs: githubInputs,
       },
-    }));
-    const setOutput = jest.fn();
-    const setFailed = jest.fn();
-    jest.unstable_mockModule(githubCoreImportPath, () => ({
-      setOutput,
-      setFailed,
-    }));
+      sha: "1234",
+      repo: {
+        owner: repo.owner,
+        repo: repo.repo,
+      },
+    };
+    setGithubContext(githubContext);
+    const core = await import("@actions/core");
+    const setOutput = jest.spyOn(core, "setOutput").mockImplementation(() => undefined);
+    const setFailed = jest.spyOn(core, "setFailed").mockImplementation(() => undefined);
     const createDispatchEvent = jest.fn();
-    jest.unstable_mockModule(sdkOctokitImportPath, () => ({
-      customOctokit: class MockOctokit {
-        constructor() {
-          return {
-            rest: {
-              repos: {
-                createDispatchEvent: createDispatchEvent,
-              },
-            },
-          };
-        }
-      },
-    }));
+    server.use(
+      http.post(
+        "https://api.github.com/repos/:owner/:repo/dispatches",
+        async ({ params, request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          createDispatchEvent({ ...params, body });
+          return new HttpResponse(null, { status: 204 });
+        },
+        { once: true }
+      )
+    );
     const { createActionsPlugin } = await import("../src/actions.js");
-
     await createActionsPlugin(
       async (context: Context) => {
         return {
@@ -283,40 +274,40 @@ describe("SDK actions tests", () => {
     const expectedResult = { event: issueCommented.eventName, command: { name: "test", parameters: { param1: "test" } } };
     expect(setFailed).not.toHaveBeenCalled();
     expect(setOutput).toHaveBeenCalledWith("result", expectedResult);
-    expect(createDispatchEvent).toHaveBeenCalledWith({
-      event_type: "return-data-to-ubiquity-os-kernel",
+    const [dispatchCall] = createDispatchEvent.mock.calls[0] ?? [];
+    expect(dispatchCall).toMatchObject({
       owner: repo.owner,
       repo: repo.repo,
-      client_payload: {
-        state_id: "stateId",
-        output: compressString(JSON.stringify(expectedResult)),
+      body: {
+        event_type: "return-data-to-ubiquity-os-kernel",
+        client_payload: {
+          state_id: "stateId",
+          output: compressString(JSON.stringify(expectedResult)),
+        },
       },
     });
   });
   it("Should deny invalid signature", async () => {
     const githubInputs = await getInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", null);
 
-    jest.unstable_mockModule("@actions/github", () => ({
-      default: {},
-      context: {
-        runId: "1",
-        payload: {
-          inputs: {
-            ...githubInputs,
-            signature: "invalid_signature",
-          },
+    const githubContext = {
+      runId: "1",
+      payload: {
+        inputs: {
+          ...githubInputs,
+          signature: "invalid_signature",
         },
-        repo: repo,
       },
-    }));
-    const setOutput = jest.fn();
-    const setFailed = jest.fn();
-    jest.unstable_mockModule(githubCoreImportPath, () => ({
-      setOutput,
-      setFailed,
-    }));
+      repo: {
+        owner: repo.owner,
+        repo: repo.repo,
+      },
+    };
+    setGithubContext(githubContext);
+    const core = await import("@actions/core");
+    const setOutput = jest.spyOn(core, "setOutput").mockImplementation(() => undefined);
+    const setFailed = jest.spyOn(core, "setFailed").mockImplementation(() => undefined);
     const { createActionsPlugin } = await import("../src/actions.js");
-
     await createActionsPlugin(
       async (context: Context) => {
         return {
@@ -333,48 +324,43 @@ describe("SDK actions tests", () => {
   it("Should accept inputs in different order", async () => {
     const githubInputs = await getInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "test_token", "main", null);
 
-    jest.unstable_mockModule(githubActionImportPath, () => ({
-      default: {},
-      context: {
-        runId: "1",
-        payload: {
-          inputs: {
-            // different order
-            signature: githubInputs.signature,
-            eventName: githubInputs.eventName,
-            settings: githubInputs.settings,
-            ref: githubInputs.ref,
-            authToken: githubInputs.authToken,
-            stateId: githubInputs.stateId,
-            command: githubInputs.command,
-            eventPayload: githubInputs.eventPayload,
-          },
+    const githubContext = {
+      runId: "1",
+      payload: {
+        inputs: {
+          // different order
+          signature: githubInputs.signature,
+          eventName: githubInputs.eventName,
+          settings: githubInputs.settings,
+          ref: githubInputs.ref,
+          authToken: githubInputs.authToken,
+          stateId: githubInputs.stateId,
+          command: githubInputs.command,
+          eventPayload: githubInputs.eventPayload,
         },
-        repo: repo,
       },
-    }));
-    const setOutput = jest.fn();
-    const setFailed = jest.fn();
-    jest.unstable_mockModule(githubCoreImportPath, () => ({
-      setOutput,
-      setFailed,
-    }));
+      repo: {
+        owner: repo.owner,
+        repo: repo.repo,
+      },
+    };
+    setGithubContext(githubContext);
+    const core = await import("@actions/core");
+    const setOutput = jest.spyOn(core, "setOutput").mockImplementation(() => undefined);
+    const setFailed = jest.spyOn(core, "setFailed").mockImplementation(() => undefined);
     const createDispatchEventFn = jest.fn();
-    jest.unstable_mockModule(sdkOctokitImportPath, () => ({
-      customOctokit: class MockOctokit {
-        constructor() {
-          return {
-            rest: {
-              repos: {
-                createDispatchEvent: createDispatchEventFn,
-              },
-            },
-          };
-        }
-      },
-    }));
+    server.use(
+      http.post(
+        "https://api.github.com/repos/:owner/:repo/dispatches",
+        async ({ params, request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          createDispatchEventFn({ ...params, body });
+          return new HttpResponse(null, { status: 204 });
+        },
+        { once: true }
+      )
+    );
     const { createActionsPlugin } = await import("../src/actions.js");
-
     await createActionsPlugin(
       async (context: Context) => {
         return {
@@ -387,13 +373,16 @@ describe("SDK actions tests", () => {
     );
     expect(setFailed).not.toHaveBeenCalled();
     expect(setOutput).toHaveBeenCalledWith("result", { event: issueCommentedEvent.eventName });
-    expect(createDispatchEventFn).toHaveBeenCalledWith({
-      event_type: "return-data-to-ubiquity-os-kernel",
+    const [dispatchCall] = createDispatchEventFn.mock.calls[0] ?? [];
+    expect(dispatchCall).toMatchObject({
       owner: repo.owner,
       repo: repo.repo,
-      client_payload: {
-        state_id: "stateId",
-        output: compressString(JSON.stringify({ event: issueCommentedEvent.eventName })),
+      body: {
+        event_type: "return-data-to-ubiquity-os-kernel",
+        client_payload: {
+          state_id: "stateId",
+          output: compressString(JSON.stringify({ event: issueCommentedEvent.eventName })),
+        },
       },
     });
   });

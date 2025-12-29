@@ -30,6 +30,10 @@ class TestLogger implements LoggerInterface {
     this.entries.push({ level: "info", message, metadata });
   }
 
+  ok(message: string, metadata?: Record<string, unknown>): void {
+    this.entries.push({ level: "ok", message, metadata });
+  }
+
   warn(message: string, metadata?: Record<string, unknown>): void {
     this.entries.push({ level: "warn", message, metadata });
   }

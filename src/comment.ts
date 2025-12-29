@@ -196,7 +196,7 @@ export class CommentHandler {
   ): Promise<WithIssueNumber<PostedGithubComment> | null> {
     const issueContext = this._extractIssueContext(context);
     if (!issueContext) {
-      context.logger.info("Cannot post comment: missing issue context in payload");
+      context.logger.warn("Cannot post comment: missing issue context in payload");
       return null;
     }
 

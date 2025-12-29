@@ -35,7 +35,7 @@ function getAiBaseUrl(options: LlmCallOptions): string {
     return normalizeBaseUrl(options.baseUrl);
   }
 
-  const envBaseUrl = getEnvString("UOS_AI_BASE_URL");
+  const envBaseUrl = getEnvString("UOS_AI_URL") || getEnvString("UOS_AI_BASE_URL");
   if (envBaseUrl) return normalizeBaseUrl(envBaseUrl);
 
   return "https://ai-ubq-fi.deno.dev";
@@ -46,7 +46,7 @@ export async function callLlm(options: LlmCallOptions, input: PluginInput | Cont
   if (!authToken) throw new Error("Missing authToken in input");
 
   const kernelToken = "ubiquityKernelToken" in input ? input.ubiquityKernelToken : undefined;
-  const payload = "payload" in input ? input.payload : input.eventPayload;
+  const payload = getPayload(input);
   const { owner, repo, installationId } = getRepoMetadata(payload);
   ensureKernelToken(authToken, kernelToken);
 
@@ -70,7 +70,9 @@ export async function callLlm(options: LlmCallOptions, input: PluginInput | Cont
   const response = await fetch(url, { method: "POST", headers, body });
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`LLM API error: ${response.status} - ${err}`);
+    const error = new Error(`LLM API error: ${response.status} - ${err}`);
+    (error as Error & { status?: number }).status = response.status;
+    throw error;
   }
 
   if (isStream) {
@@ -97,6 +99,13 @@ function ensureMessages(messages: ChatCompletionMessageParam[]) {
 
 function buildAiUrl(options: LlmCallOptions, baseUrl?: string): string {
   return `${getAiBaseUrl({ ...options, baseUrl })}/v1/chat/completions`;
+}
+
+function getPayload(input: PluginInput | Context): unknown {
+  if ("payload" in input) {
+    return (input as Context).payload;
+  }
+  return (input as PluginInput).eventPayload;
 }
 
 function getRepoMetadata(payload: unknown): { owner: string; repo: string; installationId?: number } {

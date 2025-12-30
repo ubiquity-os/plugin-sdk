@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { Logs } from "@ubiquity-os/ubiquity-os-logger";
-import { CommentHandler, Context } from "../src";
+import type { Context } from "../src/context";
 
 describe("Pull-request comment tests", () => {
   it("Should be able to post to issues and pull-request reviews", async () => {
@@ -25,21 +25,19 @@ describe("Pull-request comment tests", () => {
         id: 5678,
       },
     }));
-    jest.unstable_mockModule("@octokit/core", () => ({
-      Octokit: jest.fn(() => ({
-        rest: {
-          issues: {
-            createComment,
-            updateComment,
-          },
-          pulls: {
-            createReplyForReviewComment,
-            updateReviewComment,
-          },
+    const octokit = {
+      rest: {
+        issues: {
+          createComment,
+          updateComment,
         },
-      })),
-    }));
-    const { Octokit } = await import("@octokit/core");
+        pulls: {
+          createReplyForReviewComment,
+          updateReviewComment,
+        },
+      },
+    };
+    const { CommentHandler } = await import("../src/comment.js");
     const ctxIssue = {
       payload: {
         pull_request: {
@@ -53,7 +51,7 @@ describe("Pull-request comment tests", () => {
         },
       },
       logger,
-      octokit: new Octokit(),
+      octokit,
     } as unknown as Context;
     const ctxReviewComment = {
       payload: {
@@ -71,7 +69,7 @@ describe("Pull-request comment tests", () => {
         },
       },
       logger,
-      octokit: new Octokit(),
+      octokit,
     } as unknown as Context;
     const commentHandler = new CommentHandler();
     await commentHandler.postComment(ctxIssue, logger.ok("test"), { updateComment: true });

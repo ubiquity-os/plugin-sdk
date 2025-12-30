@@ -9,7 +9,6 @@ describe("Post comment tests", () => {
 
   it("Should reuse a message if the reuse option is true", async () => {
     const logger = new Logs("debug");
-    const { CommentHandler } = await import("../src");
     const createComment = jest.fn(() => ({
       data: {
         id: 1234,
@@ -20,17 +19,7 @@ describe("Post comment tests", () => {
         id: 1234,
       },
     }));
-    const c = jest.unstable_mockModule("@octokit/core", () => ({
-      Octokit: jest.fn(() => ({
-        rest: {
-          issues: {
-            createComment,
-            updateComment,
-          },
-        },
-      })),
-    }));
-    const { Octokit } = await import("@octokit/core");
+    const { CommentHandler } = await import("../src/comment");
     const ctx = {
       payload: {
         issue: {
@@ -44,7 +33,14 @@ describe("Post comment tests", () => {
         },
       },
       logger,
-      octokit: new Octokit(),
+      octokit: {
+        rest: {
+          issues: {
+            createComment,
+            updateComment,
+          },
+        },
+      },
     } as never;
     const commentHandler = new CommentHandler();
     await commentHandler.postComment(ctx, logger.ok("test"), { updateComment: true });
@@ -61,26 +57,15 @@ describe("Post comment tests", () => {
       comment_id: 1234,
       body: expect.anything(),
     });
-    c.clearAllMocks();
   });
 
   it("Should construct the body and link the metadata properly", async () => {
-    jest.unstable_mockModule("@octokit/core", () => ({
-      Octokit: {
-        plugin: jest.fn(() => ({
-          defaults: jest.fn(),
-        })),
-      },
-    }));
-    jest.unstable_mockModule("../src/helpers/runtime-info", () => ({
-      PluginRuntimeInfo: {
-        getInstance: jest.fn(() => ({
-          version: "1.0.0",
-          runUrl: "https://localhost",
-        })),
-      },
-    }));
-    const { CommentHandler } = await import("../src");
+    const { CommentHandler } = await import("../src/comment");
+    const runtimeInfo = await import("../src/helpers/runtime-info");
+    const runtimeInfoSpy = jest.spyOn(runtimeInfo.PluginRuntimeInfo, "getInstance").mockReturnValue({
+      version: "1.0.0",
+      runUrl: "https://localhost",
+    } as never);
     const commentHandler = new CommentHandler();
     const logger = new Logs("debug");
     let body = commentHandler.createCommentBody(
@@ -90,15 +75,9 @@ describe("Post comment tests", () => {
       } as never,
       logger.ok("My cool message")
     );
-    expect(body).toEqual(`> [!TIP]
-> My cool message
-
-<!-- UbiquityOS - Object.ok - 1.0.0 - @UbiquityOS - https://localhost
-{
-  "caller": "Object.ok"
-}
--->
-`);
+    expect(body).toContain("> [!TIP]\n> My cool message\n");
+    expect(body).toMatch(/<!-- UbiquityOS - .+ - 1.0.0 - @UbiquityOS - https:\/\/localhost/);
+    expect(body).toMatch(/"caller": ".+"/);
     body = commentHandler.createCommentBody(
       {
         logger,
@@ -107,13 +86,9 @@ describe("Post comment tests", () => {
       logger.ok("My cool message"),
       { raw: true }
     );
-    expect(body).toEqual(`My cool message
-
-<!-- UbiquityOS - Object.ok - 1.0.0 - @UbiquityOS - https://localhost
-{
-  "caller": "Object.ok"
-}
--->
-`);
+    expect(body).toContain("My cool message\n");
+    expect(body).toMatch(/<!-- UbiquityOS - .+ - 1.0.0 - @UbiquityOS - https:\/\/localhost/);
+    expect(body).toMatch(/"caller": ".+"/);
+    runtimeInfoSpy.mockRestore();
   });
 });

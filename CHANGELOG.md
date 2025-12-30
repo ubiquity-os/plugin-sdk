@@ -1,5 +1,31 @@
 # Changelog
 
+## [3.6.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.6.2...v3.6.3) (2025-12-29)
+
+### Bug Fixes
+
+* add UOS env alias for LLM base URL and surface LLM status codes
+* align configuration logging with status semantics
+
+## [3.6.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.6.1...v3.6.2) (2025-12-22)
+
+
+### Miscellaneous Chores
+
+* release 3.6.2
+
+## [3.6.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.6.0...v3.6.1) (2025-12-22)
+
+
+### Bug Fixes
+
+* harden LLM streaming parsing and input validation
+
+
+### Documentation
+
+* expand callLlm streaming example
+
 ## [3.3.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.3...v3.3.3) (2025-10-21)
 
 

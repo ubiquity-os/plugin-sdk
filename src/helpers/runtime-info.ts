@@ -1,5 +1,5 @@
-import github from "@actions/github";
 import { getRuntimeKey } from "hono/adapter";
+import { getGithubContext } from "./github-context";
 
 export abstract class PluginRuntimeInfo {
   private static _instance: PluginRuntimeInfo | null = null;
@@ -59,10 +59,11 @@ export class CfRuntimeInfo extends PluginRuntimeInfo {
 
 export class NodeRuntimeInfo extends PluginRuntimeInfo {
   public get version() {
-    return github.context.sha;
+    return getGithubContext().sha;
   }
   public get runUrl() {
-    return github.context.payload.repository ? `${github.context.payload.repository?.html_url}/actions/runs/${github.context.runId}` : "http://localhost";
+    const context = getGithubContext();
+    return context.payload.repository ? `${context.payload.repository?.html_url}/actions/runs/${context.runId}` : "http://localhost";
   }
 }
 

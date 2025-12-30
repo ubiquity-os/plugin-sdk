@@ -15,102 +15,60 @@ The `createActionsPlugin` function allows users to create plugins that will be a
 
 ### `createPlugin`
 
-The `createPlugin` function enables users to create a plugin that will run on Cloudflare Workers environment.
+The `createPlugin` function enables users to create a plugin that will run on Cloudflare Workers environment. It accepts a handler and a manifest.
 
 ### `postComment`
 
-The `postComment` function enables users to easily post a comment to an issue, a pull-request, or a pull request review thread.
+Use `context.commentHandler.postComment` to write or update a comment on the triggering issue or pull request.
 
-## Getting Started
-
-To set up the project locally, `bun` is the preferred package manager.
-
-1. Install the dependencies:
-
-   ```sh
-   bun install
-   ```
-
-2. Build the SDK
-   ```
-   bun sdk:build
-   ```
-3. Link it locally to another plugin
-   ```
-   bun link
-   ```
-
-## Scripts
-
-The project provides several npm scripts for various tasks:
-
-- `bun run sdk:build`: Compiles the TypeScript code.
-- `bun run test`: Runs the tests.
-- `bun run lint`: Runs the linter.
-- `bun run format`: Formats the code using Prettier.
-
-## Testing
-
-### Jest
-
-To start Jest tests, run:
-
-```sh
-bun run test
+```typescript
+await context.commentHandler.postComment(context, context.logger.ok("Done"));
 ```
 
-## Markdown Cleaning Utility
+### `callLlm`
 
-`cleanMarkdown` removes top-level HTML comments and configured HTML tags while preserving content inside fenced/indented code blocks, inline code spans, and blockquotes.
+The `callLlm` function allows plugins to securely call the ai.ubq.fi LLM endpoint using inherited GitHub authentication.
 
-### Import
+#### Usage
 
-```ts
-import { cleanMarkdown, type CleanMarkdownOptions } from "@ubiquity-os/plugin-sdk/markdown";
+```typescript
+import { createPlugin, callLlm, type Manifest } from '@ubiquity-os/plugin-sdk';
+
+const manifest: Manifest = {
+  name: "llm-plugin",
+  short_name: "llm",
+  description: "LLM demo",
+  commands: {
+    llm: {
+      description: "Query the LLM",
+      "ubiquity:example": "/llm hello",
+    },
+  },
+};
+
+export default createPlugin(async (context) => {
+  // Non-streaming: resolves to ChatCompletion.
+  const result = await callLlm(
+    {
+      messages: [{ role: "user", content: "Hello, world!" }],
+    },
+    context
+  );
+
+  // Streaming: returns AsyncIterable<ChatCompletionChunk>.
+  const stream = await callLlm(
+    {
+      messages: [{ role: "user", content: "Hello, world!" }],
+      stream: true,
+    },
+    context
+  );
+  for await (const chunk of stream) {
+    const delta = chunk.choices?.[0]?.delta?.content ?? "";
+    // handle delta
+  }
+  return { success: true };
+}, manifest);
 ```
 
-### Options (`CleanMarkdownOptions`)
-
-| Option               | Type                              | Default | Description                                                                                                                                                                                 |
-| -------------------- | --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tags`               | `(keyof HTMLElementTagNameMap)[]` | `[]`    | List of HTML tag names to strip. Whole block tokens that are a single matching root element are removed entirely. Inline self-closing/void-like occurrences (e.g. `<br>`) are also removed. |
-| `collapseEmptyLines` | `boolean`                         | `false` | Collapses runs of 3+ blank lines down to exactly 2.                                                                                                                                         |
-
-### Behavior Summary
-
-- Strips HTML comments (`<!-- ... -->`) outside protected contexts:
-  - Not inside fenced/indented code blocks
-  - Not inside inline code spans
-  - Not inside blockquotes (blockquote content is left untouched)
-- Removes entire HTML block tokens consisting of a single root element whose tag is in `tags`.
-- Removes inline occurrences of any tag in `tags` (void/self-closing style).
-- Leaves everything else unchanged to minimize diff noise.
-- Final output is trimmed (no trailing blank lines).
-
-### Example
-
-```ts
-const input = `
-<!-- build badge -->
-<details>
-<summary>Info</summary>
-Content inside details
-</details>
-
-Paragraph with <br> line break and \`<br>\` in code.
-
-\`\`\`ts
-// Code block with <!-- comment --> and <br>
-const x = 1;
-\`\`\`
-
-> Blockquote with <!-- preserved comment --> and <br>.
-`;
-
-const cleaned = cleanMarkdown(input, {
-  tags: ["details", "br"],
-  collapseEmptyLines: true,
-});
-
-console.log(cleaned);
-```
+Automatically extracts `authToken`, `owner`, `repo` from input and passes to ai.ubq.fi with proper headers for secure, repo-scoped access.

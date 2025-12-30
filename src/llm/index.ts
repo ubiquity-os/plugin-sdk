@@ -133,6 +133,10 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries: num
       throw error;
     } catch (error) {
       lastError = error;
+      const status = typeof (error as { status?: number }).status === "number" ? (error as { status?: number }).status : undefined;
+      if (typeof status === "number" && status < 500) {
+        throw error;
+      }
       if (attempt >= maxRetries) throw error;
       await sleep(getRetryDelayMs(attempt));
       attempt += 1;
@@ -223,6 +227,14 @@ function parseEventData(data: string): ChatCompletionChunk {
   try {
     return JSON.parse(data) as ChatCompletionChunk;
   } catch (error) {
+    if (data.includes("\n")) {
+      const collapsed = data.replace(/\n/g, EMPTY_STRING);
+      try {
+        return JSON.parse(collapsed) as ChatCompletionChunk;
+      } catch {
+        // fall through to the original error
+      }
+    }
     const message = error instanceof Error ? error.message : String(error);
     const preview = data.length > 200 ? `${data.slice(0, 200)}...` : data;
     throw new Error(`LLM stream parse error: ${message}. Data: ${preview}`);

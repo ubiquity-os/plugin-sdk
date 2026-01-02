@@ -1,6 +1,6 @@
 {
   "name": "@ubiquity-os/plugin-sdk",
-  "version": "3.7.0",
+  "version": "3.8.0",
   "description": "SDK for plugin support.",
   "author": "Ubiquity DAO",
   "license": "MIT",
@@ -125,7 +125,6 @@
     "libsodium-wrappers": "^0.7.15",
     "openai": "^4.70.2",
     "pino": "^9.7.0",
-    "typebox-validators": "^0.3.5",
     "yaml": "^2.7.0"
   },
   "devDependencies": {

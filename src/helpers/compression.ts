@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { brotliCompressSync, brotliDecompressSync } from "node:zlib";
 
 export function compressString(str: string): string {

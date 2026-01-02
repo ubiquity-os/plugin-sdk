@@ -15,9 +15,15 @@ The `createActionsPlugin` function allows users to create plugins that will be a
 
 ### `createPlugin`
 
-The `createPlugin` function enables users to create a plugin that will run on Cloudflare Workers environment.
+The `createPlugin` function enables users to create a plugin that will run on Cloudflare Workers environment. It accepts a handler and a manifest.
 
 ### `postComment`
+
+Use `context.commentHandler.postComment` to write or update a comment on the triggering issue or pull request.
+
+```typescript
+await context.commentHandler.postComment(context, context.logger.ok("Done"));
+```
 
 ### `callLlm`
 
@@ -26,33 +32,43 @@ The `callLlm` function allows plugins to securely call the ai.ubq.fi LLM endpoin
 #### Usage
 
 ```typescript
-import { PluginInput, createPlugin, callLlm } from '@ubiquity-os/plugin-sdk';
+import { createPlugin, callLlm, type Manifest } from '@ubiquity-os/plugin-sdk';
 
-export default createPlugin({
-  async onCommand(input: PluginInput) {
-    // Non-streaming: resolves to ChatCompletion.
-    const result = await callLlm(
-      {
-        messages: [{ role: 'user', content: 'Hello, world!' }]
-      },
-      input
-    );
+const manifest: Manifest = {
+  name: "llm-plugin",
+  short_name: "llm",
+  description: "LLM demo",
+  commands: {
+    llm: {
+      description: "Query the LLM",
+      "ubiquity:example": "/llm hello",
+    },
+  },
+};
 
-    // Streaming: returns AsyncIterable<ChatCompletionChunk>.
-    const stream = await callLlm(
-      {
-        messages: [{ role: 'user', content: 'Hello, world!' }],
-        stream: true
-      },
-      input
-    );
-    for await (const chunk of stream) {
-      const delta = chunk.choices?.[0]?.delta?.content ?? '';
-      // handle delta
-    }
-    return { success: true };
+export default createPlugin(async (context) => {
+  // Non-streaming: resolves to ChatCompletion.
+  const result = await callLlm(
+    {
+      messages: [{ role: "user", content: "Hello, world!" }],
+    },
+    context
+  );
+
+  // Streaming: returns AsyncIterable<ChatCompletionChunk>.
+  const stream = await callLlm(
+    {
+      messages: [{ role: "user", content: "Hello, world!" }],
+      stream: true,
+    },
+    context
+  );
+  for await (const chunk of stream) {
+    const delta = chunk.choices?.[0]?.delta?.content ?? "";
+    // handle delta
   }
-});
+  return { success: true };
+}, manifest);
 ```
 
 Automatically extracts `authToken`, `owner`, `repo` from input and passes to ai.ubq.fi with proper headers for secure, repo-scoped access.

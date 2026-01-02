@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
-import type { ChatCompletionChunk, ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import type { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { callLlm } from "../src/llm";
 
 const baseInput = {
@@ -26,6 +26,7 @@ function buildStream(chunks: string[]): ReadableStream<Uint8Array> {
 describe("callLlm", () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.useRealTimers();
   });
 
   it("rejects empty messages array", async () => {
@@ -91,5 +92,59 @@ describe("callLlm", () => {
         }),
       })
     );
+  });
+
+  it("parses non-streaming responses", async () => {
+    const completion = {
+      id: "completion-1",
+      object: "chat.completion",
+      created: 1,
+      model: "gpt-5.1",
+      choices: [],
+    } as ChatCompletion;
+
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(completion), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+    );
+
+    const result = await callLlm({ messages: [{ role: "user", content: "Hi" }], baseUrl: "https://ai.ubq.fi" }, baseInput);
+
+    expect(result).toEqual(completion);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://ai.ubq.fi/v1/chat/completions",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer token",
+        }),
+      })
+    );
+  });
+
+  it("throws on API errors", async () => {
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue(new Response("bad request", { status: 400 }));
+
+    await expect(callLlm({ messages: [{ role: "user", content: "Hi" }], baseUrl: "https://ai.ubq.fi" }, baseInput)).rejects.toThrow(
+      "LLM API error: 400 - bad request"
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries on network failures", async () => {
+    jest.useFakeTimers();
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network down"));
+
+    const failure = callLlm({ messages: [{ role: "user", content: "Hi" }], baseUrl: "https://ai.ubq.fi" }, baseInput).catch((error) => error);
+
+    await jest.runAllTimersAsync();
+    const error = await failure;
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain("network down");
   });
 });

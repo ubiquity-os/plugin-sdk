@@ -49,7 +49,7 @@ function getAiBaseUrl(options: LlmCallOptions): string {
   const envBaseUrl = getEnvString("UOS_AI_URL") || getEnvString("UOS_AI_BASE_URL");
   if (envBaseUrl) return normalizeBaseUrl(envBaseUrl);
 
-  return "https://ai-ubq-fi.deno.dev";
+  return "https://ai.ubq.fi";
 }
 
 export async function callLlm(options: LlmCallOptions, input: PluginInput | Context): Promise<ChatCompletion | AsyncIterable<ChatCompletionChunk>> {
@@ -93,8 +93,12 @@ export async function callLlm(options: LlmCallOptions, input: PluginInput | Cont
   return response.json();
 }
 
+function isGitHubAuthToken(authToken: string): boolean {
+  return authToken.startsWith("gh") || authToken.startsWith("github_pat_");
+}
+
 function ensureKernelToken(authToken: string, kernelToken?: string) {
-  const isKernelTokenRequired = authToken.startsWith("gh");
+  const isKernelTokenRequired = isGitHubAuthToken(authToken);
   if (isKernelTokenRequired && !kernelToken) {
     const err = new Error("Missing ubiquityKernelToken in input (kernel attestation is required for GitHub auth)");
     (err as Error & { status?: number }).status = 401;
@@ -117,28 +121,41 @@ function buildAiUrl(options: LlmCallOptions, baseUrl?: string): string {
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries: number): Promise<Response> {
   let attempt = 0;
   let lastError: unknown;
+
   while (attempt <= maxRetries) {
     try {
       const response = await fetch(url, options);
       if (response.ok) return response;
-
-      const errText = await response.text();
-      if (response.status >= 500 && attempt < maxRetries) {
-        await sleep(getRetryDelayMs(attempt));
-        attempt += 1;
-        continue;
-      }
-      const error = new Error(`LLM API error: ${response.status} - ${errText}`);
-      (error as Error & { status?: number }).status = response.status;
-      throw error;
+      throw await buildResponseError(response);
     } catch (error) {
       lastError = error;
-      if (attempt >= maxRetries) throw error;
+      if (!shouldRetryError(error, attempt, maxRetries)) throw error;
       await sleep(getRetryDelayMs(attempt));
       attempt += 1;
     }
   }
+
   throw lastError ?? new Error("LLM API error: request failed after retries");
+}
+
+async function buildResponseError(response: Response): Promise<Error & { status?: number }> {
+  const errText = await response.text();
+  const error = new Error(`LLM API error: ${response.status} - ${errText}`);
+  (error as Error & { status?: number }).status = response.status;
+  return error as Error & { status?: number };
+}
+
+function shouldRetryError(error: unknown, attempt: number, maxRetries: number): boolean {
+  if (attempt >= maxRetries) return false;
+  const status = getErrorStatus(error);
+  if (typeof status === "number") {
+    return status >= 500;
+  }
+  return true;
+}
+
+function getErrorStatus(error: unknown): number | undefined {
+  return typeof (error as { status?: number })?.status === "number" ? (error as { status?: number }).status : undefined;
 }
 
 function getPayload(input: PluginInput | Context): unknown {
@@ -223,6 +240,14 @@ function parseEventData(data: string): ChatCompletionChunk {
   try {
     return JSON.parse(data) as ChatCompletionChunk;
   } catch (error) {
+    if (data.includes("\n")) {
+      const collapsed = data.replace(/\n/g, EMPTY_STRING);
+      try {
+        return JSON.parse(collapsed) as ChatCompletionChunk;
+      } catch {
+        // fall through to the original error
+      }
+    }
     const message = error instanceof Error ? error.message : String(error);
     const preview = data.length > 200 ? `${data.slice(0, 200)}...` : data;
     throw new Error(`LLM stream parse error: ${message}. Data: ${preview}`);

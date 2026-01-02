@@ -32,7 +32,7 @@ The `callLlm` function allows plugins to securely call the ai.ubq.fi LLM endpoin
 #### Usage
 
 ```typescript
-import { createPlugin, callLlm, type Manifest } from '@ubiquity-os/plugin-sdk';
+import { createPlugin, callLlm, type Manifest } from "@ubiquity-os/plugin-sdk";
 
 const manifest: Manifest = {
   name: "llm-plugin",

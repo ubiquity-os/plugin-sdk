@@ -370,7 +370,7 @@ export class CommentHandler {
 
   private _createCommentBody(context: Context, message: LogReturn | Error, options?: CommentOptions): string {
     const { metadata, logMessage } = this._processMessage(context, message);
-    const shouldTagCommandResponse = options?.commentKind && typeof metadata === "object" && metadata !== null && !("commentKind" in metadata);
+    const shouldTagCommandResponse = options?.commentKind && typeof metadata === "object" && !("commentKind" in metadata);
     const metadataWithKind = shouldTagCommandResponse ? { ...(metadata as Record<string, unknown>), commentKind: options?.commentKind } : metadata;
     const { header, jsonPretty } = this._createMetadataContent(context, metadataWithKind);
     const metadataContent = this._formatMetadataContent(logMessage, header, jsonPretty);

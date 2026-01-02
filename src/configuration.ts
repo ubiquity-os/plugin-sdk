@@ -90,7 +90,8 @@ function readImports(logger: LoggerInterface, value: unknown, source: Location):
 
 function stripImports(config: PluginConfiguration): PluginConfiguration {
   if (!config || typeof config !== "object") return config;
-  const { imports: _imports, ...rest } = config as PluginConfiguration & { imports?: unknown };
+  const rest = { ...(config as PluginConfiguration) } as PluginConfiguration & { imports?: unknown };
+  delete rest.imports;
   return rest as PluginConfiguration;
 }
 
@@ -385,47 +386,58 @@ export class ConfigurationHandler {
     return resolved;
   }
 
-  private async _download({
-    repository,
-    owner,
-    octokit,
-  }: {
-    repository: string;
-    owner: string;
-    octokit: Context["octokit"];
-  }): Promise<string | null> {
+  private async _download({ repository, owner, octokit }: { repository: string; owner: string; octokit: Context["octokit"] }): Promise<string | null> {
     if (!repository || !owner) {
       this._logger.warn("Repo or owner is not defined, cannot download the requested file");
       return null;
     }
     const pathList = getConfigPathCandidatesForEnvironment(this._environment);
     for (const filePath of pathList) {
-      try {
-        this._logger.info("Attempting to fetch configuration", { owner, repository, filePath });
-        const { data, headers } = await octokit.rest.repos.getContent({
-          owner,
-          repo: repository,
-          path: filePath,
-          mediaType: { format: "raw" },
-        });
-        this._logger.ok("Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"], data });
-        return data as unknown as string; // this will be a string if media format is raw
-      } catch (err) {
-        // In case of a missing config, do not log it as an error
-        if (err && typeof err === "object" && "status" in err && err.status === 404) {
-          this._logger.warn("No configuration file found", { owner, repository, filePath });
-        } else {
-          const status = err && typeof err === "object" && "status" in err ? Number((err as { status?: number }).status) : null;
-          const metadata = { err, owner, repository, filePath, ...(status ? { status } : {}) };
-          if (status && status >= 500) {
-            this._logger.error("Failed to download the requested file", metadata);
-          } else {
-            this._logger.warn("Failed to download the requested file", metadata);
-          }
-        }
-      }
+      const content = await this._tryDownloadPath({ repository, owner, octokit, filePath });
+      if (content !== null) return content;
     }
     return null;
+  }
+
+  private async _tryDownloadPath({
+    repository,
+    owner,
+    octokit,
+    filePath,
+  }: {
+    repository: string;
+    owner: string;
+    octokit: Context["octokit"];
+    filePath: string;
+  }): Promise<string | null> {
+    try {
+      this._logger.info("Attempting to fetch configuration", { owner, repository, filePath });
+      const { data, headers } = await octokit.rest.repos.getContent({
+        owner,
+        repo: repository,
+        path: filePath,
+        mediaType: { format: "raw" },
+      });
+      this._logger.ok("Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"], data });
+      return data as unknown as string; // this will be a string if media format is raw
+    } catch (err) {
+      this._handleDownloadError(err, { owner, repository, filePath });
+      return null;
+    }
+  }
+
+  private _handleDownloadError(err: unknown, context: { owner: string; repository: string; filePath: string }): void {
+    const status = err && typeof err === "object" && "status" in err ? Number((err as { status?: number }).status) : null;
+    if (status === 404) {
+      this._logger.warn("No configuration file found", context);
+      return;
+    }
+    const metadata = { err, ...context, ...(status ? { status } : {}) };
+    if (status && status >= 500) {
+      this._logger.error("Failed to download the requested file", metadata);
+    } else {
+      this._logger.warn("Failed to download the requested file", metadata);
+    }
   }
 
   private _parseYaml(data: null | string) {

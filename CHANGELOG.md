@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.8.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.8.2...v3.8.3) (2026-01-02)
+
+
+### Bug Fixes
+
+* updated `bun.lock` to reflect latest changes ([96d5cec](https://github.com/ubiquity-os/plugin-sdk/commit/96d5cec83a632f5b6607e4e4f4b189f34fe6ef2e))
+
 ## [3.8.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.6.0...v3.8.2) (2026-01-02)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.8.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.6.0...v3.8.2) (2026-01-02)
+
+
+### Bug Fixes
+
+* removed unnecessary dotenv dependency ([af98f9f](https://github.com/ubiquity-os/plugin-sdk/commit/af98f9f93e34c7609318d58103a2e909b3762410))
+
+
+### Miscellaneous Chores
+
+* release 3.8.2 ([76a0f39](https://github.com/ubiquity-os/plugin-sdk/commit/76a0f39e8abb52d481bf4e87026e429bebc57cea))
+
 ## [3.6.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.5...v3.6.0) (2025-12-22)
 
 

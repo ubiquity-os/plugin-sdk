@@ -3,7 +3,6 @@ import * as github from "@actions/github";
 import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
 import { Value } from "@sinclair/typebox/value";
 import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
-import { config } from "dotenv";
 import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { transformError } from "./error";
@@ -14,8 +13,6 @@ import { verifySignature } from "./signature";
 import { inputSchema } from "./types/input-schema";
 import { HandlerReturn } from "./types/sdk";
 import { getPluginOptions, Options } from "./util";
-
-config();
 
 async function handleError(context: Context, pluginOptions: Options, error: unknown) {
   console.error(error);

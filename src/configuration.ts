@@ -52,7 +52,7 @@ export class ConfigurationHandler {
     let selfConfig: string | undefined;
     if (manifest.homepage_url) {
       const name = manifest.homepage_url;
-      selfConfig = Object.keys(cfg.plugins).find((key) => key === normalizeBaseUrl(name));
+      selfConfig = Object.keys(cfg.plugins).find((key) => normalizeBaseUrl(key) === normalizeBaseUrl(name));
     } else {
       const name = manifest.short_name.split("@")[0];
       selfConfig = Object.keys(cfg.plugins).find((key) => new RegExp(`^${name}(?:$|@.+)`).exec(key.replace(/:[^@]+/, "")));

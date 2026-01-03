@@ -3,6 +3,7 @@ import YAML, { YAMLException } from "js-yaml";
 import { Buffer } from "node:buffer";
 import { configSchema, GithubPlugin, parsePluginIdentifier, PluginConfiguration, PluginSettings } from "./configuration/schema";
 import { Context } from "./context";
+import { normalizeBaseUrl } from "./helpers/urls";
 import { Manifest, manifestSchema } from "./types/manifest";
 
 export const CONFIG_PROD_FULL_PATH = ".github/.ubiquity-os.config.yml";
@@ -51,7 +52,7 @@ export class ConfigurationHandler {
     let selfConfig: string | undefined;
     if (manifest.homepage_url) {
       const name = manifest.homepage_url;
-      selfConfig = Object.keys(cfg.plugins).find((key) => key === name);
+      selfConfig = Object.keys(cfg.plugins).find((key) => key === normalizeBaseUrl(name));
     } else {
       const name = manifest.short_name.split("@")[0];
       selfConfig = Object.keys(cfg.plugins).find((key) => new RegExp(`^${name}(?:$|@.+)`).exec(key.replace(/:[^@]+/, "")));

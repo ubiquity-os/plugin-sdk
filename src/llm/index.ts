@@ -1,5 +1,6 @@
 import type { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import type { Context } from "../context";
+import { normalizeBaseUrl } from "../helpers/urls";
 
 type LlmResponseFormat = { type: "json_object" | "text" } | { type: string; [key: string]: unknown };
 type LlmPayload = {
@@ -36,14 +37,6 @@ export type LlmCallOptions = {
   tool_choice?: string | Record<string, unknown>;
   [key: string]: unknown;
 };
-
-function normalizeBaseUrl(baseUrl: string): string {
-  let normalized = baseUrl.trim();
-  while (normalized.endsWith("/")) {
-    normalized = normalized.slice(0, -1);
-  }
-  return normalized;
-}
 
 function getEnvString(name: string): string {
   if (typeof process === "undefined" || !process?.env) return "";

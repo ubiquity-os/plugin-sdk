@@ -121,7 +121,7 @@
     "@ubiquity-os/ubiquity-os-logger": "^1.4.0",
     "hono": "^4.10.6",
     "js-yaml": "^4.1.1",
-    "openai": "^4.70.2"
+    "openai": "^4.104.0"
   },
   "peerDependencies": {
     "@sinclair/typebox": "0.34.41"

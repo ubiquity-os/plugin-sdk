@@ -142,6 +142,7 @@
     "@ubiquity-os/eslint-plugin-no-empty-strings": "^1.0.3",
     "cross-env": "^7.0.3",
     "cspell": "^8.19.4",
+    "dotenv": "^17.2.3",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-check-file": "^2.8.0",

@@ -18,6 +18,10 @@ export interface LoggerInterface {
   warn(message: string, metadata?: Record<string, unknown>): void;
 }
 
+export function isGithubPlugin(plugin: string | GithubPlugin): plugin is GithubPlugin {
+  return typeof plugin !== "string";
+}
+
 /**
  * Handles fetching and managing plugin configurations from GitHub repositories.
  * Prioritizes production configuration (`.ubiquity-os.config.yml`) over development configuration (`.ubiquity-os.config.dev.yml`),
@@ -40,13 +44,19 @@ export class ConfigurationHandler {
    *  @returns The plugin's configuration or null if not found
    **/
   public async getSelfConfiguration<T extends NonNullable<PluginSettings>["with"]>(
-    manifest: Pick<Manifest, "short_name">,
+    manifest: Pick<Manifest, "short_name" | "homepage_url">,
     location?: Location
   ): Promise<T | null> {
     const cfg = await this.getConfiguration(location);
-    const name = manifest.short_name.split("@")[0];
-    const selfConfig = Object.keys(cfg.plugins).find((key) => new RegExp(`^${name}(?:$|@.+)`).exec(key.replace(/:[^@]+/, "")));
-    return selfConfig && cfg.plugins[selfConfig] ? (cfg.plugins[selfConfig]["with"] as T) : null;
+    let selfConfig: string | undefined;
+    if (manifest.homepage_url) {
+      const name = manifest.homepage_url;
+      selfConfig = Object.keys(cfg.plugins).find((key) => key === name);
+    } else {
+      const name = manifest.short_name.split("@")[0];
+      selfConfig = Object.keys(cfg.plugins).find((key) => new RegExp(`^${name}(?:$|@.+)`).exec(key.replace(/:[^@]+/, "")));
+    }
+    return selfConfig && cfg.plugins[selfConfig] ? (cfg.plugins[selfConfig]?.["with"] as T) : null;
   }
 
   /**
@@ -85,7 +95,7 @@ export class ConfigurationHandler {
     this._logger.debug("Found plugins enabled", { repo: `${owner}/${repo}`, plugins: Object.keys(mergedConfiguration.plugins).length });
 
     for (const [pluginKey, pluginSettings] of Object.entries(mergedConfiguration.plugins)) {
-      let pluginIdentifier: GithubPlugin;
+      let pluginIdentifier: GithubPlugin | string;
       try {
         pluginIdentifier = parsePluginIdentifier(pluginKey);
       } catch (error) {
@@ -230,8 +240,25 @@ export class ConfigurationHandler {
     };
   }
 
-  public getManifest(plugin: GithubPlugin) {
-    return this._fetchActionManifest(plugin);
+  public getManifest(plugin: GithubPlugin | string) {
+    return isGithubPlugin(plugin) ? this._fetchActionManifest(plugin) : this._fetchWorkerManifest(plugin);
+  }
+
+  private async _fetchWorkerManifest(url: string): Promise<Manifest | null> {
+    if (this._manifestCache[url]) {
+      return this._manifestCache[url];
+    }
+    const manifestUrl = `${url}/manifest.json`;
+    try {
+      const result = await fetch(manifestUrl);
+      const jsonData = await result.json();
+      const manifest = this._decodeManifest(jsonData);
+      this._manifestCache[url] = manifest;
+      return manifest;
+    } catch (e) {
+      this._logger.error("Could not find a manifest for Worker", { manifestUrl, err: e });
+    }
+    return null;
   }
 
   private async _fetchActionManifest({ owner, repo, ref }: GithubPlugin): Promise<Manifest | null> {

@@ -252,6 +252,10 @@ export class ConfigurationHandler {
     const manifestUrl = `${url}/manifest.json`;
     try {
       const result = await fetch(manifestUrl);
+      if (!result.ok) {
+        this._logger.error("Could not find a manifest for Worker", { manifestUrl, status: result.status });
+        return null;
+      }
       const jsonData = await result.json();
       const manifest = this._decodeManifest(jsonData);
       this._manifestCache[url] = manifest;

@@ -92,6 +92,8 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       eventName: inputs.eventName as TSupportedEvents,
       payload: inputs.eventPayload,
       command: command,
+      authToken: inputs.authToken,
+      ubiquityKernelToken: inputs.ubiquityKernelToken,
       octokit: new customOctokit({ auth: inputs.authToken }),
       config: config,
       env: env,

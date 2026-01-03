@@ -1,5 +1,158 @@
 # Changelog
 
+## [3.8.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.8.3...v3.8.4) (2026-01-02)
+
+
+### Miscellaneous Chores
+
+* release 3.8.3 ([ffaf95f](https://github.com/ubiquity-os/plugin-sdk/commit/ffaf95f3121e42a1246564016025e321c0656e09))
+* release 3.8.4 ([b5c2aa2](https://github.com/ubiquity-os/plugin-sdk/commit/b5c2aa2fff30780a6301076450e9417341a0351a))
+
+## [3.8.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.8.3...v3.8.3) (2026-01-02)
+
+
+### Miscellaneous Chores
+
+* release 3.8.3 ([ffaf95f](https://github.com/ubiquity-os/plugin-sdk/commit/ffaf95f3121e42a1246564016025e321c0656e09))
+
+## [3.8.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.8.2...v3.8.3) (2026-01-02)
+
+
+### Bug Fixes
+
+* updated `bun.lock` to reflect latest changes ([96d5cec](https://github.com/ubiquity-os/plugin-sdk/commit/96d5cec83a632f5b6607e4e4f4b189f34fe6ef2e))
+
+## [3.8.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.6.0...v3.8.2) (2026-01-02)
+
+
+### Bug Fixes
+
+* removed unnecessary dotenv dependency ([af98f9f](https://github.com/ubiquity-os/plugin-sdk/commit/af98f9f93e34c7609318d58103a2e909b3762410))
+
+
+### Miscellaneous Chores
+
+* release 3.8.2 ([76a0f39](https://github.com/ubiquity-os/plugin-sdk/commit/76a0f39e8abb52d481bf4e87026e429bebc57cea))
+
+## [3.6.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.5...v3.6.0) (2025-12-22)
+
+
+### Features
+
+* add callLlm helper ([#160](https://github.com/ubiquity-os/plugin-sdk/issues/160)) ([3fb7b29](https://github.com/ubiquity-os/plugin-sdk/commit/3fb7b29d13bf75b06e614746a288e7e161ddbf86))
+
+## [3.5.5](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.4...v3.5.5) (2025-12-12)
+
+
+### Bug Fixes
+
+* add optional `homepage_url` field to manifest schema ([63915d1](https://github.com/ubiquity-os/plugin-sdk/commit/63915d13933b28020b09574feb86564eebcdf917))
+
+## [3.5.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.3...v3.5.4) (2025-12-08)
+
+
+### Bug Fixes
+
+* add environment-based config prioritization and import extensions ([70f2514](https://github.com/ubiquity-os/plugin-sdk/commit/70f2514a3410b6989a803b7aaac3f7b2baa5a89b))
+
+## [3.5.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.2...v3.5.3) (2025-12-08)
+
+
+### Bug Fixes
+
+* handle null errors in configuration decoding ([e4b36f5](https://github.com/ubiquity-os/plugin-sdk/commit/e4b36f5126d18ce6b0257cbef7f21b216ff3f0a0))
+
+## [3.5.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.1...v3.5.2) (2025-12-08)
+
+
+### Bug Fixes
+
+* expose the `getConfigurationFromRepo` method in the configuration handler ([46d2c1d](https://github.com/ubiquity-os/plugin-sdk/commit/46d2c1d2a5abb5156dc9a1bfa6765e280b396a3f))
+
+## [3.5.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.5.0...v3.5.1) (2025-12-07)
+
+
+### Bug Fixes
+
+* ensure default value for skipping bot events ([edd3dad](https://github.com/ubiquity-os/plugin-sdk/commit/edd3dadaeb97786f0190b00c5a3b8172f7a0df69))
+
+## [3.5.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.6...v3.5.0) (2025-12-07)
+
+
+### Features
+
+* add configuration handling and `js-yaml` integration ([6991739](https://github.com/ubiquity-os/plugin-sdk/commit/6991739d45347224a677ba24141b926b116dc7c8))
+
+
+### Bug Fixes
+
+* added `short_name` to the manifest schema ([e3316f1](https://github.com/ubiquity-os/plugin-sdk/commit/e3316f1b4f0a71e33319d54b520d91c66cc58bf0))
+
+## [3.4.6](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.5...v3.4.6) (2025-11-23)
+
+
+### Bug Fixes
+
+* pin @sinclair/typebox peerDependency version ([bbca0e7](https://github.com/ubiquity-os/plugin-sdk/commit/bbca0e707898265db0d44bc1b3f39686b0461fd5))
+
+## [3.4.5](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.4...v3.4.5) (2025-11-23)
+
+
+### Bug Fixes
+
+* added generic for option ([3255671](https://github.com/ubiquity-os/plugin-sdk/commit/32556716f63ed7a80f2eba666b56f5c716cf796f))
+
+## [3.4.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.3...v3.4.4) (2025-11-23)
+
+
+### Bug Fixes
+
+* improve Options interface with generics ([fc81434](https://github.com/ubiquity-os/plugin-sdk/commit/fc8143416542de4672f5f6d91564234bb28bf038))
+
+## [3.4.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.2...v3.4.3) (2025-11-23)
+
+
+### Bug Fixes
+
+* bump jest-related dependencies to latest versions ([9886c23](https://github.com/ubiquity-os/plugin-sdk/commit/9886c238ff1ad33c1ab8f3c8b8e5b74f7e32e8d8))
+* update packages ([bae0bc4](https://github.com/ubiquity-os/plugin-sdk/commit/bae0bc496fa2e0770470b063edf30a598c0f076c))
+
+## [3.4.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.1...v3.4.2) (2025-11-18)
+
+
+### Bug Fixes
+
+* changed Jest to use `swc` ([f191499](https://github.com/ubiquity-os/plugin-sdk/commit/f191499c24690b176e26e002efadbdd4514687b0))
+* dts build now works with newest types ([d494a01](https://github.com/ubiquity-os/plugin-sdk/commit/d494a010d89cb52f66288bab59c9d6b238f7e72a))
+
+## [3.4.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.4.0...v3.4.1) (2025-11-18)
+
+
+### Bug Fixes
+
+* bumped packages ([f120b18](https://github.com/ubiquity-os/plugin-sdk/commit/f120b18df1577db8b9f69e50b97be8793e1e9cf6))
+
+## [3.4.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.4...v3.4.0) (2025-10-27)
+
+
+### Features
+
+* sanitize LLM responses ([291f7c3](https://github.com/ubiquity-os/plugin-sdk/commit/291f7c355b0e17b901b9dfb0dbb1e9fe77c05e8d))
+
+## [3.3.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.3...v3.3.4) (2025-10-21)
+
+
+### Bug Fixes
+
+* remove NPM_CONFIG_TOKEN to release-please workflow for consistent auth ([59703c6](https://github.com/ubiquity-os/plugin-sdk/commit/59703c672c7822cb3d0cab7ec5747e9c136b21d3))
+* remove NPM_CONFIG_TOKEN to release-please workflow for consistent auth ([dd2af0f](https://github.com/ubiquity-os/plugin-sdk/commit/dd2af0f557a6fa120ebf239d18d16b21cbb715ef))
+
+
+### Miscellaneous Chores
+
+* release 3.3.3 ([85ce729](https://github.com/ubiquity-os/plugin-sdk/commit/85ce72986c2f89e7b35f168e0ccd7219eacb8745))
+* release 3.3.4 ([eceb713](https://github.com/ubiquity-os/plugin-sdk/commit/eceb713ba349e7909784950e22a871f0180dd6a9))
+
 ## [3.3.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.3.3...v3.3.3) (2025-10-21)
 
 

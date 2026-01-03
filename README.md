@@ -17,6 +17,10 @@ The `createActionsPlugin` function allows users to create plugins that will be a
 
 The `createPlugin` function enables users to create a plugin that will run on Cloudflare Workers environment.
 
+### `callLlm`
+
+The `callLlm` function sends chat completion requests to `ai.ubq.fi` using the auth token and repository context supplied by the kernel.
+
 ### `postComment`
 
 The `postComment` function enables users to easily post a comment to an issue, a pull-request, or a pull request review thread.
@@ -57,6 +61,19 @@ To start Jest tests, run:
 
 ```sh
 bun run test
+```
+
+## LLM Utility
+
+```ts
+import { callLlm } from "@ubiquity-os/plugin-sdk";
+
+const result = await callLlm(
+  {
+    messages: [{ role: "user", content: "Summarize this issue." }],
+  },
+  context
+);
 ```
 
 ## Markdown Cleaning Utility

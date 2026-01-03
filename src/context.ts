@@ -9,6 +9,8 @@ export interface Context<TConfig = unknown, TEnv = unknown, TCommand = unknown, 
     [K in TSupportedEvents]: K extends WebhookEventName ? WebhookEvent<K> : never;
   }[TSupportedEvents]["payload"];
   command: TCommand | null;
+  authToken: string;
+  ubiquityKernelToken?: string;
   octokit: InstanceType<typeof customOctokit>;
   config: TConfig;
   env: TEnv;

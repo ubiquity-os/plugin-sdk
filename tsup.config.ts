@@ -10,6 +10,7 @@ export default defineConfig({
     helpers: "src/helpers/index.ts",
     compression: "src/helpers/compression.ts",
     configuration: "src/configuration.ts",
+    llm: "src/llm/index.ts",
   },
   format: ["cjs", "esm"],
   outDir: "dist",

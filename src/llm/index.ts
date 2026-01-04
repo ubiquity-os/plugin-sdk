@@ -63,7 +63,6 @@ export async function callLlm(options: LlmCallOptions, input: PluginInput | Cont
   const kernelToken = "ubiquityKernelToken" in input ? input.ubiquityKernelToken : undefined;
   const payload = getPayload(input);
   const { owner, repo, installationId } = getRepoMetadata(payload);
-  ensureKernelToken(authToken, kernelToken);
 
   const { baseUrl, model, stream: isStream, messages, ...rest } = options;
   ensureMessages(messages);
@@ -91,19 +90,6 @@ export async function callLlm(options: LlmCallOptions, input: PluginInput | Cont
     return parseSseStream(response.body);
   }
   return response.json();
-}
-
-function isGitHubAuthToken(authToken: string): boolean {
-  return authToken.startsWith("gh") || authToken.startsWith("github_pat_");
-}
-
-function ensureKernelToken(authToken: string, kernelToken?: string) {
-  const isKernelTokenRequired = isGitHubAuthToken(authToken);
-  if (isKernelTokenRequired && !kernelToken) {
-    const err = new Error("Missing ubiquityKernelToken in input (kernel attestation is required for GitHub auth)");
-    (err as Error & { status?: number }).status = 401;
-    throw err;
-  }
 }
 
 function ensureMessages(messages: ChatCompletionMessageParam[]) {

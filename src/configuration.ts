@@ -52,6 +52,11 @@ function normalizeImportKey(location: Location): string {
   return `${location.owner}`.trim().toLowerCase() + "/" + `${location.repo}`.trim().toLowerCase();
 }
 
+function isHttpUrl(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.startsWith("http://") || trimmed.startsWith("https://");
+}
+
 function parseImportSpec(value: string): Location | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -195,15 +200,8 @@ export class ConfigurationHandler {
     this._logger.ok("Found plugins enabled", { repo: `${owner}/${repo}`, plugins: Object.keys(mergedConfiguration.plugins).length });
 
     for (const [pluginKey, pluginSettings] of Object.entries(mergedConfiguration.plugins)) {
-      let pluginIdentifier: GithubPlugin;
-      try {
-        pluginIdentifier = parsePluginIdentifier(pluginKey);
-      } catch (error) {
-        this._logger.warn("Invalid plugin identifier; skipping", { plugin: pluginKey, err: error });
-        continue;
-      }
-
-      const manifest = await this.getManifest(pluginIdentifier);
+      const isUrlPlugin = isHttpUrl(pluginKey);
+      const manifest = isUrlPlugin ? null : await this.getManifest(parsePluginIdentifier(pluginKey));
 
       let runsOn = pluginSettings?.runsOn ?? [];
       let shouldSkipBotEvents = pluginSettings?.skipBotEvents;

@@ -9,6 +9,7 @@ export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEvent
   public eventPayload: EmitterWebhookEvent<T>["payload"];
   public settings: unknown;
   public authToken: string;
+  public ubiquityKernelToken?: string;
   public ref: string;
   public command: CommandCall;
 
@@ -20,7 +21,8 @@ export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEvent
     settings: unknown,
     authToken: string,
     ref: string,
-    command: CommandCall
+    command: CommandCall,
+    ubiquityKernelToken?: string
   ) {
     this._privateKey = privateKey;
     this.stateId = stateId;
@@ -28,6 +30,7 @@ export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEvent
     this.eventPayload = eventPayload;
     this.settings = settings;
     this.authToken = authToken;
+    this.ubiquityKernelToken = ubiquityKernelToken;
     this.ref = ref;
     this.command = command;
   }
@@ -39,6 +42,7 @@ export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEvent
       eventPayload: compressString(JSON.stringify(this.eventPayload)),
       settings: JSON.stringify(this.settings),
       authToken: this.authToken,
+      ubiquityKernelToken: this.ubiquityKernelToken,
       ref: this.ref,
       command: JSON.stringify(this.command),
     };

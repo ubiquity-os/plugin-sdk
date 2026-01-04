@@ -2,7 +2,6 @@ import * as core from "@actions/core";
 import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
 import { Value } from "@sinclair/typebox/value";
 import { Logs } from "@ubiquity-os/ubiquity-os-logger";
-import { config } from "dotenv";
 import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { transformError } from "./error";
@@ -14,8 +13,6 @@ import { verifySignature } from "./signature";
 import { inputSchema } from "./types/input-schema";
 import { HandlerReturn } from "./types/sdk";
 import { getPluginOptions, Options } from "./util";
-
-config();
 
 async function handleError(context: Context, pluginOptions: Options, error: unknown) {
   console.error(error);
@@ -35,8 +32,8 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
 ) {
   const pluginOptions = getPluginOptions(options);
 
-  const pluginGithubToken = process.env.PLUGIN_GITHUB_TOKEN;
-  if (!pluginGithubToken) {
+  const pluginGithubToken = pluginOptions.returnDataToKernel ? process.env.PLUGIN_GITHUB_TOKEN : undefined;
+  if (pluginOptions.returnDataToKernel && !pluginGithubToken) {
     core.setFailed("Error: PLUGIN_GITHUB_TOKEN env is not set");
     return;
   }
@@ -101,7 +98,7 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     const result = await handler(context);
     core.setOutput("result", result);
     if (pluginOptions?.returnDataToKernel) {
-      await returnDataToKernel(pluginGithubToken, inputs.stateId, result);
+      await returnDataToKernel(pluginGithubToken as string, inputs.stateId, result);
     }
   } catch (error) {
     await handleError(context, pluginOptions, error);

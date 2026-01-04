@@ -80,22 +80,54 @@ describe("ConfigurationHandler", () => {
     expect(config).toEqual(expected);
   });
 
-  it("merges organization and repository configs while enriching plugins with manifest defaults", async () => {
+  it("throws when plugin identifiers omit workflow IDs", async () => {
     const owner = "acme";
     const repo = "demo";
-    const orgYaml = `plugins:
+    const repoYaml = `plugins:
   "ubiquity-os/example-plugin":
     with:
       level: 1
 `;
+    const configFiles: ConfigFileMap = {
+      [`${owner}:${repo}:${CONFIG_PROD_FULL_PATH}`]: repoYaml,
+    };
+    const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub(configFiles, {}));
+    await expect(handler.getConfiguration({ owner, repo })).rejects.toThrow("workflow ID");
+  });
+
+  it("accepts URL-based plugin identifiers without manifest enrichment", async () => {
+    const owner = "acme";
+    const repo = "demo";
+    const urlPlugin = "https://example.com/plugin";
     const repoYaml = `plugins:
-  invalid:
+  "${urlPlugin}":
     with:
-      should: "skip"
-  "ubiquity-os/example-plugin":
+      level: 1
+`;
+    const configFiles: ConfigFileMap = {
+      [`${owner}:${repo}:${CONFIG_PROD_FULL_PATH}`]: repoYaml,
+    };
+    const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub(configFiles, {}));
+    const config = await handler.getConfiguration({ owner, repo });
+
+    expect(config.plugins[urlPlugin]?.with).toEqual({ level: 1 });
+    expect(config.plugins[urlPlugin]?.runsOn).toEqual([]);
+    expect(config.plugins[urlPlugin]?.skipBotEvents).toBe(true);
+  });
+
+  it("merges organization and repository configs while enriching plugins with manifest defaults", async () => {
+    const owner = "acme";
+    const repo = "demo";
+    const orgYaml = `plugins:
+  "ubiquity-os/example-plugin:compute.yml":
+    with:
+      level: 1
+`;
+    const repoYaml = `plugins:
+  "ubiquity-os/example-plugin:compute.yml":
     with:
       level: 2
-  "ubiquity-os/new-plugin":
+  "ubiquity-os/new-plugin:compute.yml":
     with:
       enabled: true
     runsOn:
@@ -123,18 +155,17 @@ describe("ConfigurationHandler", () => {
     const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub(configFiles, manifests));
     const config = await handler.getConfiguration({ owner, repo });
     expect(Object.keys(config.plugins)).toHaveLength(2);
-    expect(config.plugins["ubiquity-os/example-plugin"]?.with).toEqual({ level: 2 });
-    expect(config.plugins["ubiquity-os/example-plugin"]?.runsOn).toEqual(["issues.closed"]);
-    expect(config.plugins["ubiquity-os/example-plugin"]?.skipBotEvents).toBe(false);
-    expect(config.plugins["ubiquity-os/new-plugin"]?.runsOn).toEqual(["issues.opened"]);
-    expect(config.plugins["ubiquity-os/new-plugin"]?.skipBotEvents).toBe(false);
-    expect(config.plugins.invalid).toBeUndefined();
+    expect(config.plugins["ubiquity-os/example-plugin:compute.yml"]?.with).toEqual({ level: 2 });
+    expect(config.plugins["ubiquity-os/example-plugin:compute.yml"]?.runsOn).toEqual(["issues.closed"]);
+    expect(config.plugins["ubiquity-os/example-plugin:compute.yml"]?.skipBotEvents).toBe(false);
+    expect(config.plugins["ubiquity-os/new-plugin:compute.yml"]?.runsOn).toEqual(["issues.opened"]);
+    expect(config.plugins["ubiquity-os/new-plugin:compute.yml"]?.skipBotEvents).toBe(false);
   });
 
   it("returns plugin specific configuration for manifest short names", async () => {
     const staticConfig: PluginConfiguration = {
       plugins: {
-        "ubiquity-os/example-plugin": {
+        "ubiquity-os/example-plugin:compute.yml": {
           with: { token: "secret" },
           runsOn: [],
           skipBotEvents: true,
@@ -171,27 +202,27 @@ describe("ConfigurationHandler", () => {
     const orgYaml = `imports:
   - acme/shared-config
 plugins:
-  "ubiquity-os/example-plugin":
+  "ubiquity-os/example-plugin:compute.yml":
     with:
       level: 1
 `;
     const orgImportYaml = `plugins:
-  "ubiquity-os/example-plugin":
+  "ubiquity-os/example-plugin:compute.yml":
     with:
       level: 3
-  "ubiquity-os/extra-plugin":
+  "ubiquity-os/extra-plugin:compute.yml":
     with:
       enabled: true
 `;
     const repoYaml = `imports:
   - acme/repo-shared
 plugins:
-  "ubiquity-os/example-plugin":
+  "ubiquity-os/example-plugin:compute.yml":
     with:
       level: 2
 `;
     const repoImportYaml = `plugins:
-  "ubiquity-os/repo-plugin":
+  "ubiquity-os/repo-plugin:compute.yml":
     with:
       flag: true
 `;
@@ -226,8 +257,8 @@ plugins:
     const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub(configFiles, manifests));
     const config = await handler.getConfiguration({ owner, repo });
 
-    expect(config.plugins["ubiquity-os/example-plugin"]?.with).toEqual({ level: 2 });
-    expect(config.plugins["ubiquity-os/extra-plugin"]?.with).toEqual({ enabled: true });
-    expect(config.plugins["ubiquity-os/repo-plugin"]?.with).toEqual({ flag: true });
+    expect(config.plugins["ubiquity-os/example-plugin:compute.yml"]?.with).toEqual({ level: 2 });
+    expect(config.plugins["ubiquity-os/extra-plugin:compute.yml"]?.with).toEqual({ enabled: true });
+    expect(config.plugins["ubiquity-os/repo-plugin:compute.yml"]?.with).toEqual({ flag: true });
   });
 });

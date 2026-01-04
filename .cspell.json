@@ -18,6 +18,7 @@
     "sonarjs",
     "blockquotes",
     "brotli",
+    "logit",
     "octo"
   ],
   "dictionaries": ["typescript", "node", "software-terms"],

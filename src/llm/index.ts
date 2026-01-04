@@ -46,7 +46,7 @@ function getAiBaseUrl(options: LlmCallOptions): string {
     return normalizeBaseUrl(options.baseUrl);
   }
 
-  const envBaseUrl = getEnvString("UOS_AI_URL") || getEnvString("UOS_AI_BASE_URL");
+  const envBaseUrl = getEnvString("UOS_AI_URL");
   if (envBaseUrl) return normalizeBaseUrl(envBaseUrl);
 
   return "https://ai.ubq.fi";

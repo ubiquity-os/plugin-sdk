@@ -18,7 +18,6 @@ const cfg: Config = {
     "^(\\.{1,2}/.*)\\.js$": "$1",
     "@octokit/webhooks-methods": "<rootDir>/node_modules/@octokit/webhooks-methods/dist-node/index.js",
   },
-  setupFilesAfterEnv: ["dotenv/config"],
 };
 
 export default cfg;

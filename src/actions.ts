@@ -15,7 +15,9 @@ import { inputSchema, type InputSchema } from "./types/input-schema";
 import { HandlerReturn } from "./types/sdk";
 import { getPluginOptions, Options } from "./util";
 
-async function handleError(context: Context, pluginOptions: Options, error: unknown) {
+type PluginOptions = ReturnType<typeof getPluginOptions>;
+
+async function handleError(context: Context, pluginOptions: PluginOptions, error: unknown) {
   console.error(error);
 
   const loggerError = transformError(context, error);
@@ -27,7 +29,7 @@ async function handleError(context: Context, pluginOptions: Options, error: unkn
   }
 }
 
-function getDispatchTokenOrFail(pluginOptions: Options): string | null {
+function getDispatchTokenOrFail(pluginOptions: PluginOptions): string | null {
   if (!pluginOptions.returnDataToKernel) return null;
   const token = process.env.PLUGIN_GITHUB_TOKEN;
   if (!token) {
@@ -37,7 +39,7 @@ function getDispatchTokenOrFail(pluginOptions: Options): string | null {
   return token;
 }
 
-async function getInputsOrFail(pluginOptions: Options): Promise<InputSchema | null> {
+async function getInputsOrFail(pluginOptions: PluginOptions): Promise<InputSchema | null> {
   const githubContext = getGithubContext();
   const body = githubContext.payload.inputs;
   const inputSchemaErrors = [...Value.Errors(inputSchema, body)];
@@ -47,9 +49,9 @@ async function getInputsOrFail(pluginOptions: Options): Promise<InputSchema | nu
     return null;
   }
 
-  // eslint-disable-next-line sonarjs/deprecation
+   
   if (!pluginOptions.bypassSignatureVerification) {
-    const signature = body.signature;
+    const signature = typeof body.signature === "string" ? body.signature : "";
     if (!signature) {
       core.setFailed("Error: Missing signature");
       return null;

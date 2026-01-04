@@ -362,12 +362,11 @@ export class ConfigurationHandler {
       owner: location.owner,
       octokit,
     });
-
-    logOk(this._logger, "Downloaded configuration file", { owner: location.owner, repository: location.repo });
     if (!rawData) {
       this._logger.warn("No raw configuration data", { owner: location.owner, repository: location.repo });
       return { config: null, imports: [] as Location[], errors: null, rawData: null };
     }
+    logOk(this._logger, "Downloaded configuration file", { owner: location.owner, repository: location.repo });
 
     const { yaml, errors } = this._parseYaml(rawData);
     const imports = readImports(this._logger, (yaml as { imports?: unknown })?.imports, location);
@@ -475,7 +474,7 @@ export class ConfigurationHandler {
         path: filePath,
         mediaType: { format: "raw" },
       });
-      logOk(this._logger, "Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"], data });
+      logOk(this._logger, "Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"] });
       return data as unknown as string; // this will be a string if media format is raw
     } catch (err) {
       this._handleDownloadError(err, { owner, repository, filePath });
@@ -498,11 +497,11 @@ export class ConfigurationHandler {
   }
 
   private _parseYaml(data: null | string) {
-    this._logger.info("Will attempt to parse YAML data", { data });
+    this._logger.info("Will attempt to parse YAML data");
     try {
       if (data) {
         const parsedData = YAML.load(data);
-        logOk(this._logger, "Parsed yaml data", { parsedData });
+        logOk(this._logger, "Parsed yaml data successfully");
         return { yaml: parsedData ?? null, errors: null };
       }
     } catch (error) {

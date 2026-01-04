@@ -49,7 +49,6 @@ async function getInputsOrFail(pluginOptions: PluginOptions): Promise<InputSchem
     return null;
   }
 
-   
   if (!pluginOptions.bypassSignatureVerification) {
     const signature = typeof body.signature === "string" ? body.signature : "";
     if (!signature) {
@@ -66,16 +65,19 @@ async function getInputsOrFail(pluginOptions: PluginOptions): Promise<InputSchem
   return Value.Decode(inputSchema, body);
 }
 
-function decodeWithSchema<T>(schema: TSchema | undefined, value: unknown, errorMessage: string): T {
+type DecodeResult<T> = { value: T | null; error?: Error };
+
+function decodeWithSchema<T>(schema: TSchema | undefined, value: unknown, errorMessage: string): DecodeResult<T> {
   if (!schema) {
-    return value as T;
+    return { value: value as T };
   }
   try {
-    return Value.Decode(schema, Value.Default(schema, value));
+    return { value: Value.Decode(schema, Value.Default(schema, value)) };
   } catch (error) {
     console.dir(...Value.Errors(schema, value), { depth: null });
-    core.setFailed(errorMessage);
-    throw error;
+    const err = new Error(errorMessage);
+    (err as Error & { cause?: unknown }).cause = error;
+    return { value: null, error: err };
   }
 }
 
@@ -95,25 +97,35 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     return;
   }
 
-  const config = decodeWithSchema<TConfig>(pluginOptions.settingsSchema, inputs.settings, "Error: Invalid settings provided.");
-  const env = decodeWithSchema<TEnv>(pluginOptions.envSchema, process.env, "Error: Invalid environment provided.");
-
-  const command = getCommand<TCommand>(inputs, pluginOptions);
-
   const context: Context<TConfig, TEnv, TCommand, TSupportedEvents> = {
     eventName: inputs.eventName as TSupportedEvents,
     payload: inputs.eventPayload,
-    command: command,
+    command: null,
     authToken: inputs.authToken,
     ubiquityKernelToken: inputs.ubiquityKernelToken,
     octokit: new customOctokit({ auth: inputs.authToken }),
-    config: config,
-    env: env,
+    config: inputs.settings as TConfig,
+    env: process.env as TEnv,
     logger: new Logs(pluginOptions.logLevel),
     commentHandler: new CommentHandler(),
   };
 
+  const configResult = decodeWithSchema<TConfig>(pluginOptions.settingsSchema, inputs.settings, "Error: Invalid settings provided.");
+  if (!configResult.value) {
+    await handleError(context, pluginOptions, configResult.error ?? new Error("Error: Invalid settings provided."));
+    return;
+  }
+  context.config = configResult.value;
+
+  const envResult = decodeWithSchema<TEnv>(pluginOptions.envSchema, process.env, "Error: Invalid environment provided.");
+  if (!envResult.value) {
+    await handleError(context, pluginOptions, envResult.error ?? new Error("Error: Invalid environment provided."));
+    return;
+  }
+  context.env = envResult.value;
+
   try {
+    context.command = getCommand<TCommand>(inputs, pluginOptions);
     const result = await handler(context);
     core.setOutput("result", result);
     if (pluginOptions.returnDataToKernel && pluginGithubToken) {

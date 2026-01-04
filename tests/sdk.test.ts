@@ -244,12 +244,9 @@ describe("SDK actions tests", () => {
       },
     };
     setGithubContext(githubContext);
-    const setOutput = jest.fn();
-    const setFailed = jest.fn();
-    jest.unstable_mockModule("@actions/core", () => ({
-      setOutput,
-      setFailed,
-    }));
+    const core = await import("@actions/core");
+    const setOutput = jest.spyOn(core, "setOutput").mockImplementation(() => undefined);
+    const setFailed = jest.spyOn(core, "setFailed").mockImplementation(() => undefined);
     const createDispatchEvent = jest.fn();
     server.use(
       http.post(
@@ -307,12 +304,9 @@ describe("SDK actions tests", () => {
       },
     };
     setGithubContext(githubContext);
-    const setOutput = jest.fn();
-    const setFailed = jest.fn();
-    jest.unstable_mockModule("@actions/core", () => ({
-      setOutput,
-      setFailed,
-    }));
+    const core = await import("@actions/core");
+    const setOutput = jest.spyOn(core, "setOutput").mockImplementation(() => undefined);
+    const setFailed = jest.spyOn(core, "setFailed").mockImplementation(() => undefined);
     const { createActionsPlugin } = await import("../src/actions.js");
     await createActionsPlugin(
       async (context: Context) => {
@@ -351,12 +345,9 @@ describe("SDK actions tests", () => {
       },
     };
     setGithubContext(githubContext);
-    const setOutput = jest.fn();
-    const setFailed = jest.fn();
-    jest.unstable_mockModule("@actions/core", () => ({
-      setOutput,
-      setFailed,
-    }));
+    const core = await import("@actions/core");
+    const setOutput = jest.spyOn(core, "setOutput").mockImplementation(() => undefined);
+    const setFailed = jest.spyOn(core, "setFailed").mockImplementation(() => undefined);
     const createDispatchEventFn = jest.fn();
     server.use(
       http.post(

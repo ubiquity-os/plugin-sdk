@@ -180,8 +180,17 @@ export class ConfigurationHandler {
       return defaultConfiguration;
     }
 
+    const mergedConfiguration = await this._getMergedConfiguration(location, defaultConfiguration);
+    const resolvedPlugins = await this._resolvePlugins(mergedConfiguration, location);
+    return {
+      ...mergedConfiguration,
+      plugins: resolvedPlugins,
+    };
+  }
+
+  private async _getMergedConfiguration(location: Location, defaultConfiguration: PluginConfiguration): Promise<PluginConfiguration> {
     const { owner, repo } = location;
-    let mergedConfiguration: PluginConfiguration = defaultConfiguration;
+    let mergedConfiguration = defaultConfiguration;
 
     this._logger.info("Fetching configurations from the organization and repository", {
       orgRepo: `${owner}/${CONFIG_ORG_REPO}`,
@@ -198,38 +207,55 @@ export class ConfigurationHandler {
       mergedConfiguration = this.mergeConfigurations(mergedConfiguration, repoConfig.config);
     }
 
-    const resolvedPlugins: Record<string, PluginSettings> = {};
+    return mergedConfiguration;
+  }
 
-    this._logger.ok("Found plugins enabled", { repo: `${owner}/${repo}`, plugins: Object.keys(mergedConfiguration.plugins).length });
+  private async _resolvePlugins(mergedConfiguration: PluginConfiguration, location: Location): Promise<Record<string, PluginSettings>> {
+    const resolvedPlugins: Record<string, PluginSettings> = {};
+    this._logger.ok("Found plugins enabled", { repo: `${location.owner}/${location.repo}`, plugins: Object.keys(mergedConfiguration.plugins).length });
 
     for (const [pluginKey, pluginSettings] of Object.entries(mergedConfiguration.plugins)) {
-      const isUrlPlugin = isHttpUrl(pluginKey);
-      const manifest = isUrlPlugin ? null : await this.getManifest(parsePluginIdentifier(pluginKey));
-
-      let runsOn = pluginSettings?.runsOn ?? [];
-      let shouldSkipBotEvents = pluginSettings?.skipBotEvents;
-
-      if (manifest) {
-        if (!runsOn.length) {
-          runsOn = manifest["ubiquity:listeners"] ?? [];
-        }
-        if (shouldSkipBotEvents === undefined) {
-          shouldSkipBotEvents = manifest.skipBotEvents ?? true;
-        }
-      } else {
-        shouldSkipBotEvents = true;
-      }
-
-      resolvedPlugins[pluginKey] = {
-        ...pluginSettings,
-        with: pluginSettings?.with ?? {},
-        runsOn,
-        skipBotEvents: shouldSkipBotEvents,
-      };
+      const resolved = await this._resolvePluginSettings(pluginKey, pluginSettings);
+      if (!resolved) continue;
+      resolvedPlugins[pluginKey] = resolved;
     }
+
+    return resolvedPlugins;
+  }
+
+  private async _resolvePluginSettings(pluginKey: string, pluginSettings?: PluginSettings): Promise<PluginSettings | null> {
+    const isUrlPlugin = isHttpUrl(pluginKey);
+    let manifest: Manifest | null = null;
+    if (!isUrlPlugin) {
+      let pluginIdentifier: GithubPlugin;
+      try {
+        pluginIdentifier = parsePluginIdentifier(pluginKey);
+      } catch (error) {
+        this._logger.warn("Invalid plugin identifier; skipping", { plugin: pluginKey, err: error });
+        return null;
+      }
+      manifest = await this.getManifest(pluginIdentifier);
+    }
+
+    let runsOn = pluginSettings?.runsOn ?? [];
+    let shouldSkipBotEvents = pluginSettings?.skipBotEvents;
+
+    if (manifest) {
+      if (!runsOn.length) {
+        runsOn = manifest["ubiquity:listeners"] ?? [];
+      }
+      if (shouldSkipBotEvents === undefined) {
+        shouldSkipBotEvents = manifest.skipBotEvents ?? true;
+      }
+    } else {
+      shouldSkipBotEvents = true;
+    }
+
     return {
-      ...mergedConfiguration,
-      plugins: resolvedPlugins,
+      ...pluginSettings,
+      with: pluginSettings?.with ?? {},
+      runsOn,
+      skipBotEvents: shouldSkipBotEvents,
     };
   }
 

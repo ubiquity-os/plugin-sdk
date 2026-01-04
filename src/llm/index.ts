@@ -89,7 +89,17 @@ export async function callLlm(options: LlmCallOptions, input: PluginInput | Cont
     }
     return parseSseStream(response.body);
   }
-  return response.json();
+  const rawText = await response.text();
+  try {
+    return JSON.parse(rawText) as ChatCompletion;
+  } catch (err) {
+    const preview = rawText ? rawText.slice(0, 1000) : EMPTY_STRING;
+    const message = "LLM API error: failed to parse JSON response from server" + (preview ? `; response body (truncated): ${preview}` : EMPTY_STRING);
+    const error = new Error(message);
+    (error as Error & { cause?: unknown; status?: number }).cause = err;
+    (error as Error & { cause?: unknown; status?: number }).status = response.status;
+    throw error;
+  }
 }
 
 function ensureMessages(messages: ChatCompletionMessageParam[]) {

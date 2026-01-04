@@ -80,7 +80,7 @@ describe("ConfigurationHandler", () => {
     expect(config).toEqual(expected);
   });
 
-  it("throws when plugin identifiers omit workflow IDs", async () => {
+  it("defaults workflow IDs to compute.yml when omitted", async () => {
     const owner = "acme";
     const repo = "demo";
     const repoYaml = `plugins:
@@ -92,7 +92,9 @@ describe("ConfigurationHandler", () => {
       [`${owner}:${repo}:${CONFIG_PROD_FULL_PATH}`]: repoYaml,
     };
     const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub(configFiles, {}));
-    await expect(handler.getConfiguration({ owner, repo })).rejects.toThrow("workflow ID");
+    const config = await handler.getConfiguration({ owner, repo });
+    expect(config.plugins["ubiquity-os/example-plugin"]?.with).toEqual({ level: 1 });
+    expect(config.plugins["ubiquity-os/example-plugin"]?.skipBotEvents).toBe(true);
   });
 
   it("accepts URL-based plugin identifiers without manifest enrichment", async () => {

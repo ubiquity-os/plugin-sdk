@@ -98,7 +98,7 @@
     "knip": "knip --config .github/knip.ts",
     "knip-ci": "knip --no-exit-code --reporter json --config .github/knip.ts",
     "prepare": "node .husky/install.mjs",
-    "jest:test": "cross-env NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest --coverage"
+    "jest:test": "jest --coverage"
   },
   "keywords": [
     "typescript",
@@ -121,7 +121,7 @@
     "@ubiquity-os/ubiquity-os-logger": "^1.4.0",
     "hono": "^4.10.6",
     "js-yaml": "^4.1.1",
-    "openai": "^4.70.2"
+    "openai": "^6.15.0"
   },
   "peerDependencies": {
     "@sinclair/typebox": "0.34.41"
@@ -140,8 +140,8 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.19.25",
     "@ubiquity-os/eslint-plugin-no-empty-strings": "^1.0.3",
-    "cross-env": "^7.0.3",
     "cspell": "^8.19.4",
+    "dotenv": "^16.4.5",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-check-file": "^2.8.0",

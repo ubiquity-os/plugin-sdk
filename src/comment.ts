@@ -221,8 +221,7 @@ export class CommentHandler {
   }
 
   _shouldApplyCommandResponsePolicy(context: Context): boolean {
-    const payload = context as { command?: unknown };
-    return Boolean(payload.command);
+    return Boolean(context.command);
   }
 
   _isCommandResponseComment(body: string | null | undefined): boolean {

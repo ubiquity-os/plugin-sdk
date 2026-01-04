@@ -110,8 +110,8 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
   try {
     const result = await handler(context);
     core.setOutput("result", result);
-    if (pluginOptions.returnDataToKernel) {
-      await returnDataToKernel(pluginGithubToken as string, inputs.stateId, result);
+    if (pluginOptions.returnDataToKernel && pluginGithubToken) {
+      await returnDataToKernel(pluginGithubToken, inputs.stateId, result);
     }
   } catch (error) {
     await handleError(context, pluginOptions, error);

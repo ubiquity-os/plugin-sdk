@@ -50,6 +50,10 @@ async function getInputsOrFail(pluginOptions: Options): Promise<InputSchema | nu
   // eslint-disable-next-line sonarjs/deprecation
   if (!pluginOptions.bypassSignatureVerification) {
     const signature = body.signature;
+    if (!signature) {
+      core.setFailed("Error: Missing signature");
+      return null;
+    }
     const isValid = await verifySignature(pluginOptions.kernelPublicKey, body, signature);
     if (!isValid) {
       core.setFailed("Error: Invalid signature");

@@ -5,7 +5,7 @@ import { http, HttpResponse } from "msw";
 import { KERNEL_PUBLIC_KEY } from "../src/constants";
 import { compressString } from "../src/helpers/compression";
 import { retry } from "../src/helpers/retry";
-import { signPayload } from "../src/signature";
+import { signPayload, verifySignature } from "../src/signature";
 import type { Context } from "../src/context";
 import type { CommandCall } from "../src/types/command";
 import { getPluginOptions } from "../src/util";
@@ -46,14 +46,17 @@ async function getInputs(
   settings: object,
   authToken: string,
   ref: string,
-  command: CommandCall | null
+  command: CommandCall | null,
+  ubiquityKernelToken?: string
 ) {
-  const inputs = {
+  const inputs: Record<string, unknown> = {
     stateId,
     eventName,
     eventPayload: compressString(JSON.stringify(eventPayload)),
     settings: JSON.stringify(settings),
     authToken,
+    // JSON.stringify omits undefined values, keeping legacy signatures compatible.
+    ubiquityKernelToken,
     ref,
     command: JSON.stringify(command),
   };
@@ -216,6 +219,22 @@ describe("SDK worker tests", () => {
       stateId: "stateId",
       output: { success: true, event: issueCommented.eventName, command: { name: "test", parameters: { param1: "test" } } },
     });
+  });
+});
+
+describe("Signature verification", () => {
+  it("accepts legacy payloads without ubiquityKernelToken", async () => {
+    const inputs = await getInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "token", "main", null);
+    const { signature, ...unsigned } = inputs;
+    const isValid = await verifySignature(publicKey, unsigned, signature as string);
+    expect(isValid).toBe(true);
+  });
+
+  it("accepts payloads with ubiquityKernelToken", async () => {
+    const inputs = await getInputs("stateId", issueCommentedEvent.eventName, issueCommentedEvent.eventPayload, {}, "token", "main", null, "kernel-token");
+    const { signature, ...unsigned } = inputs;
+    const isValid = await verifySignature(publicKey, unsigned, signature as string);
+    expect(isValid).toBe(true);
   });
 });
 

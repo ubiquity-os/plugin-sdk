@@ -148,8 +148,16 @@ export interface LoggerInterface {
   debug(message: string, metadata?: Record<string, unknown>): void;
   error(message: string, metadata?: Record<string, unknown>): void;
   info(message: string, metadata?: Record<string, unknown>): void;
-  ok(message: string, metadata?: Record<string, unknown>): void;
+  ok?(message: string, metadata?: Record<string, unknown>): void;
   warn(message: string, metadata?: Record<string, unknown>): void;
+}
+
+function logOk(logger: LoggerInterface, message: string, metadata?: Record<string, unknown>) {
+  if (logger.ok) {
+    logger.ok(message, metadata);
+  } else {
+    logger.info(message, metadata);
+  }
 }
 
 /**
@@ -232,7 +240,7 @@ export class ConfigurationHandler {
 
   private async _resolvePlugins(mergedConfiguration: PluginConfiguration, location: Location): Promise<Record<string, PluginSettings>> {
     const resolvedPlugins: Record<string, PluginSettings> = {};
-    this._logger.ok("Found plugins enabled", { repo: `${location.owner}/${location.repo}`, plugins: Object.keys(mergedConfiguration.plugins).length });
+    logOk(this._logger, "Found plugins enabled", { repo: `${location.owner}/${location.repo}`, plugins: Object.keys(mergedConfiguration.plugins).length });
 
     for (const [pluginKey, pluginSettings] of Object.entries(mergedConfiguration.plugins)) {
       const resolved = await this._resolvePluginSettings(pluginKey, pluginSettings);
@@ -355,7 +363,7 @@ export class ConfigurationHandler {
       octokit,
     });
 
-    this._logger.ok("Downloaded configuration file", { owner: location.owner, repository: location.repo });
+    logOk(this._logger, "Downloaded configuration file", { owner: location.owner, repository: location.repo });
     if (!rawData) {
       this._logger.warn("No raw configuration data", { owner: location.owner, repository: location.repo });
       return { config: null, imports: [] as Location[], errors: null, rawData: null };
@@ -467,7 +475,7 @@ export class ConfigurationHandler {
         path: filePath,
         mediaType: { format: "raw" },
       });
-      this._logger.ok("Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"], data });
+      logOk(this._logger, "Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"], data });
       return data as unknown as string; // this will be a string if media format is raw
     } catch (err) {
       this._handleDownloadError(err, { owner, repository, filePath });
@@ -494,7 +502,7 @@ export class ConfigurationHandler {
     try {
       if (data) {
         const parsedData = YAML.load(data);
-        this._logger.ok("Parsed yaml data", { parsedData });
+        logOk(this._logger, "Parsed yaml data", { parsedData });
         return { yaml: parsedData ?? null, errors: null };
       }
     } catch (error) {

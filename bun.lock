@@ -30,6 +30,7 @@
         "@jest/globals": "^30.2.0",
         "@mswjs/data": "0.15.0",
         "@mswjs/http-middleware": "^0.10.3",
+        "@octokit/webhooks-methods": "^6.0.0",
         "@swc/jest": "^0.2.39",
         "@types/js-yaml": "^4.0.9",
         "@types/node": "^20.19.25",

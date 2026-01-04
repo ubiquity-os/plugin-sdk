@@ -8,6 +8,8 @@ import { Manifest, manifestSchema } from "./types/manifest";
 export const CONFIG_PROD_FULL_PATH = ".github/.ubiquity-os.config.yml";
 export const CONFIG_DEV_FULL_PATH = ".github/.ubiquity-os.config.dev.yml";
 export const CONFIG_ORG_REPO = ".ubiquity-os";
+// eslint-disable-next-line @ubiquity-os/no-empty-strings
+const EMPTY_STRING = "";
 
 type Location = { owner: string; repo: string };
 type OctokitFactory = (location: Location) => Promise<Context["octokit"] | null>;
@@ -58,6 +60,27 @@ function normalizeImportKey(location: Location): string {
 function isHttpUrl(value: string): boolean {
   const trimmed = value.trim();
   return trimmed.startsWith("http://") || trimmed.startsWith("https://");
+}
+
+function resolveManifestUrl(pluginUrl: string): string | null {
+  try {
+    const parsed = new URL(pluginUrl.trim());
+    let pathname = parsed.pathname;
+    while (pathname.endsWith("/") && pathname.length > 1) {
+      pathname = pathname.slice(0, -1);
+    }
+    if (pathname.endsWith(".json")) {
+      parsed.search = EMPTY_STRING;
+      parsed.hash = EMPTY_STRING;
+      return parsed.toString();
+    }
+    parsed.pathname = `${pathname}/manifest.json`;
+    parsed.search = EMPTY_STRING;
+    parsed.hash = EMPTY_STRING;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
 }
 
 function parseImportSpec(value: string): Location | null {
@@ -235,6 +258,8 @@ export class ConfigurationHandler {
         return null;
       }
       manifest = await this.getManifest(pluginIdentifier);
+    } else {
+      manifest = await this._fetchUrlManifest(pluginKey);
     }
 
     let runsOn = pluginSettings?.runsOn ?? [];
@@ -497,6 +522,47 @@ export class ConfigurationHandler {
 
   public getManifest(plugin: GithubPlugin) {
     return this._fetchActionManifest(plugin);
+  }
+
+  private async _fetchUrlManifest(pluginUrl: string): Promise<Manifest | null> {
+    const manifestUrl = resolveManifestUrl(pluginUrl);
+    if (!manifestUrl) {
+      this._logger.warn("Invalid plugin URL; cannot fetch manifest", { pluginUrl });
+      return null;
+    }
+    const manifestKey = `url:${manifestUrl}`;
+    if (this._manifestCache[manifestKey]) {
+      return this._manifestCache[manifestKey];
+    }
+    if (this._manifestPromiseCache[manifestKey]) {
+      return this._manifestPromiseCache[manifestKey];
+    }
+    const manifestPromise = (async () => {
+      if (typeof fetch !== "function") {
+        this._logger.warn("Fetch is unavailable; cannot load URL manifest", { manifestUrl });
+        return null;
+      }
+      try {
+        const response = await fetch(manifestUrl);
+        if (!response.ok) {
+          this._logger.warn("URL manifest request failed", { manifestUrl, status: response.status });
+          return null;
+        }
+        const data = await response.json();
+        const manifest = this._decodeManifest(data);
+        this._manifestCache[manifestKey] = manifest;
+        return manifest;
+      } catch (e) {
+        this._logger.warn("Could not load URL manifest", { manifestUrl, err: e });
+        return null;
+      }
+    })();
+    this._manifestPromiseCache[manifestKey] = manifestPromise;
+    try {
+      return await manifestPromise;
+    } finally {
+      delete this._manifestPromiseCache[manifestKey];
+    }
   }
 
   private async _fetchActionManifest({ owner, repo, ref }: GithubPlugin): Promise<Manifest | null> {

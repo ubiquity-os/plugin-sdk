@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { Value } from "@sinclair/typebox/value";
 import { CONFIG_PROD_FULL_PATH, ConfigurationHandler, LoggerInterface } from "../src/configuration";
 import { configSchema, PluginConfiguration } from "../src/configuration/schema";
@@ -71,6 +71,9 @@ function createOctokitStub(configFiles: ConfigFileMap, manifests: ManifestMap): 
 }
 
 describe("ConfigurationHandler", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
   it("returns the default configuration when no location is provided", async () => {
     const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub({}, {}));
     const config = await handler.getConfiguration();
@@ -97,10 +100,18 @@ describe("ConfigurationHandler", () => {
     expect(config.plugins["ubiquity-os/example-plugin"]?.skipBotEvents).toBe(true);
   });
 
-  it("accepts URL-based plugin identifiers without manifest enrichment", async () => {
+  it("loads URL plugin manifests from the endpoint", async () => {
     const owner = "acme";
     const repo = "demo";
     const urlPlugin = "https://example.com/plugin";
+    const manifest: Manifest = {
+      name: "Example Plugin",
+      short_name: "example/plugin@1.0.0",
+      description: "Example plugin manifest",
+      commands: {},
+      "ubiquity:listeners": ["issues.opened"],
+      skipBotEvents: false,
+    };
     const repoYaml = `plugins:
   "${urlPlugin}":
     with:
@@ -109,12 +120,19 @@ describe("ConfigurationHandler", () => {
     const configFiles: ConfigFileMap = {
       [`${owner}:${repo}:${CONFIG_PROD_FULL_PATH}`]: repoYaml,
     };
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(manifest), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
     const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub(configFiles, {}));
     const config = await handler.getConfiguration({ owner, repo });
 
     expect(config.plugins[urlPlugin]?.with).toEqual({ level: 1 });
-    expect(config.plugins[urlPlugin]?.runsOn).toEqual([]);
-    expect(config.plugins[urlPlugin]?.skipBotEvents).toBe(true);
+    expect(config.plugins[urlPlugin]?.runsOn).toEqual(["issues.opened"]);
+    expect(config.plugins[urlPlugin]?.skipBotEvents).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith("https://example.com/plugin/manifest.json");
   });
 
   it("merges organization and repository configs while enriching plugins with manifest defaults", async () => {

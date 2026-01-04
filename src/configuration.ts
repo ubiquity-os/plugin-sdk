@@ -24,8 +24,11 @@ const ENVIRONMENT_TO_CONFIG_SUFFIX: Record<string, string> = {
 const VALID_CONFIG_SUFFIX = /^[a-z0-9][a-z0-9_-]*$/i;
 const MAX_IMPORT_DEPTH = 6;
 
+// eslint-disable-next-line @ubiquity-os/no-empty-strings
+const EMPTY_STRING = "";
+
 function normalizeEnvironmentName(environment: string | null | undefined): string {
-  return String(environment ?? "")
+  return String(environment ?? EMPTY_STRING)
     .trim()
     .toLowerCase();
 }

@@ -15,6 +15,7 @@ export type LlmCallOptions = {
   model?: string;
   stream?: boolean;
   messages: ChatCompletionMessageParam[];
+  aiAuthToken?: string;
 } & Partial<Omit<ChatCompletionCreateParamsNonStreaming, "model" | "messages" | "stream">>;
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -41,6 +42,42 @@ function getEnvString(name: string): string {
   return String(process.env[name] ?? EMPTY_STRING).trim();
 }
 
+function normalizeToken(value: unknown): string {
+  return typeof value === "string" ? value.trim() : EMPTY_STRING;
+}
+
+function isGitHubToken(token: string): boolean {
+  return token.trim().startsWith("gh");
+}
+
+function getEnvTokenFromInput(input: PluginInput | Context): string {
+  if ("env" in input) {
+    const envValue = (input as Context).env;
+    if (envValue && typeof envValue === "object") {
+      const token = normalizeToken((envValue as Record<string, unknown>).UOS_AI_TOKEN);
+      if (token) return token;
+    }
+  }
+
+  return getEnvString("UOS_AI_TOKEN");
+}
+
+function resolveAuthToken(input: PluginInput | Context, aiAuthToken?: string): { token: string; isGitHub: boolean } {
+  const explicit = normalizeToken(aiAuthToken);
+  if (explicit) return { token: explicit, isGitHub: isGitHubToken(explicit) };
+
+  const envToken = getEnvTokenFromInput(input);
+  if (envToken) return { token: envToken, isGitHub: isGitHubToken(envToken) };
+
+  const fallback = normalizeToken((input as { authToken?: string }).authToken);
+  if (!fallback) {
+    const err = new Error("Missing auth token; set UOS_AI_TOKEN, pass aiAuthToken, or provide authToken in input");
+    (err as Error & { status?: number }).status = 401;
+    throw err;
+  }
+  return { token: fallback, isGitHub: isGitHubToken(fallback) };
+}
+
 function getAiBaseUrl(options: LlmCallOptions): string {
   if (typeof options.baseUrl === "string" && options.baseUrl.trim()) {
     return normalizeBaseUrl(options.baseUrl);
@@ -53,18 +90,12 @@ function getAiBaseUrl(options: LlmCallOptions): string {
 }
 
 export async function callLlm(options: LlmCallOptions, input: PluginInput | Context): Promise<ChatCompletion | AsyncIterable<ChatCompletionChunk>> {
-  const authToken = String(input.authToken ?? EMPTY_STRING).trim();
-  if (!authToken) {
-    const err = new Error("Missing authToken in input");
-    (err as Error & { status?: number }).status = 401;
-    throw err;
-  }
-
+  const { baseUrl, model, stream: isStream, messages, aiAuthToken, ...rest } = options;
+  const { token: authToken, isGitHub } = resolveAuthToken(input, aiAuthToken);
   const kernelToken = "ubiquityKernelToken" in input ? input.ubiquityKernelToken : undefined;
   const payload = getPayload(input);
   const { owner, repo, installationId } = getRepoMetadata(payload);
 
-  const { baseUrl, model, stream: isStream, messages, ...rest } = options;
   ensureMessages(messages);
   const url = buildAiUrl(options, baseUrl);
   const body = JSON.stringify({
@@ -78,7 +109,7 @@ export async function callLlm(options: LlmCallOptions, input: PluginInput | Cont
     owner,
     repo,
     installationId,
-    ubiquityKernelToken: kernelToken,
+    ubiquityKernelToken: isGitHub ? kernelToken : undefined,
   });
 
   const response = await fetchWithRetry(url, { method: "POST", headers, body }, MAX_LLM_RETRIES);

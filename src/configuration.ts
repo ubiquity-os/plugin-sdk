@@ -368,7 +368,7 @@ export class ConfigurationHandler {
     }
     logOk(this._logger, "Downloaded configuration file", { owner: location.owner, repository: location.repo });
 
-    const { yaml, errors } = this._parseYaml(rawData);
+    const { yaml, errors } = this.parseYaml(rawData);
     const imports = readImports(this._logger, (yaml as { imports?: unknown })?.imports, location);
     if (yaml && typeof yaml === "object" && !Array.isArray(yaml) && "imports" in (yaml as { imports?: unknown })) {
       delete (yaml as { imports?: unknown }).imports;
@@ -496,7 +496,10 @@ export class ConfigurationHandler {
     }
   }
 
-  private _parseYaml(data: null | string) {
+  /*
+   * Parse the raw YAML content and returns the loaded YAML, or errors if any.
+   */
+  public parseYaml(data: null | string) {
     this._logger.info("Will attempt to parse YAML data");
     try {
       if (data) {

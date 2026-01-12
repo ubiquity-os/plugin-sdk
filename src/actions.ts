@@ -1,32 +1,83 @@
 import * as core from "@actions/core";
-import * as github from "@actions/github";
 import { EmitterWebhookEventName as WebhookEventName } from "@octokit/webhooks";
+import type { TSchema } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
-import { LogReturn, Logs } from "@ubiquity-os/ubiquity-os-logger";
+import { Logs } from "@ubiquity-os/ubiquity-os-logger";
 import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { transformError } from "./error";
 import { getCommand } from "./helpers/command";
 import { compressString } from "./helpers/compression";
+import { getGithubContext } from "./helpers/github-context";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
-import { inputSchema } from "./types/input-schema";
+import { inputSchema, type InputSchema } from "./types/input-schema";
 import { HandlerReturn } from "./types/sdk";
 import { getPluginOptions, Options } from "./util";
 
-async function handleError(context: Context, pluginOptions: Options, error: unknown) {
+type PluginOptions = ReturnType<typeof getPluginOptions>;
+
+async function handleError(context: Context, pluginOptions: PluginOptions, error: unknown) {
   console.error(error);
 
   const loggerError = transformError(context, error);
 
-  if (loggerError instanceof LogReturn) {
-    core.setFailed(loggerError.logMessage.diff);
-  } else if (loggerError instanceof Error) {
-    core.setFailed(loggerError);
-  }
+  core.setFailed(loggerError.logMessage.diff);
 
   if (pluginOptions.postCommentOnError && loggerError) {
     await context.commentHandler.postComment(context, loggerError);
+  }
+}
+
+function getDispatchTokenOrFail(pluginOptions: PluginOptions): string | null {
+  if (!pluginOptions.returnDataToKernel) return null;
+  const token = process.env.PLUGIN_GITHUB_TOKEN;
+  if (!token) {
+    core.setFailed("Error: PLUGIN_GITHUB_TOKEN env is not set");
+    return null;
+  }
+  return token;
+}
+
+async function getInputsOrFail(pluginOptions: PluginOptions): Promise<InputSchema | null> {
+  const githubContext = getGithubContext();
+  const body = githubContext.payload.inputs;
+  const inputSchemaErrors = [...Value.Errors(inputSchema, body)];
+  if (inputSchemaErrors.length) {
+    console.dir(inputSchemaErrors, { depth: null });
+    core.setFailed(`Error: Invalid inputs payload: ${inputSchemaErrors.map((o) => o.message).join(", ")}`);
+    return null;
+  }
+
+  if (!pluginOptions.bypassSignatureVerification) {
+    const signature = typeof body.signature === "string" ? body.signature : "";
+    if (!signature) {
+      core.setFailed("Error: Missing signature");
+      return null;
+    }
+    const isValid = await verifySignature(pluginOptions.kernelPublicKey, body, signature);
+    if (!isValid) {
+      core.setFailed("Error: Invalid signature");
+      return null;
+    }
+  }
+
+  return Value.Decode(inputSchema, body);
+}
+
+type DecodeResult<T> = { value: T | null; error?: Error };
+
+function decodeWithSchema<T>(schema: TSchema | undefined, value: unknown, errorMessage: string): DecodeResult<T> {
+  if (!schema) {
+    return { value: value as T };
+  }
+  try {
+    return { value: Value.Decode(schema, Value.Default(schema, value)) };
+  } catch (error) {
+    console.dir(...Value.Errors(schema, value), { depth: null });
+    const err = new Error(errorMessage);
+    (err as Error & { cause?: unknown }).cause = error;
+    return { value: null, error: err };
   }
 }
 
@@ -36,71 +87,48 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
 ) {
   const pluginOptions = getPluginOptions(options);
 
-  const pluginGithubToken = process.env.PLUGIN_GITHUB_TOKEN;
-  if (!pluginGithubToken) {
-    core.setFailed("Error: PLUGIN_GITHUB_TOKEN env is not set");
+  const pluginGithubToken = getDispatchTokenOrFail(pluginOptions);
+  if (pluginOptions.returnDataToKernel && !pluginGithubToken) {
     return;
   }
 
-  const body = github.context.payload.inputs;
-  const inputSchemaErrors = [...Value.Errors(inputSchema, body)];
-  if (inputSchemaErrors.length) {
-    console.dir(inputSchemaErrors, { depth: null });
-    core.setFailed(`Error: Invalid inputs payload: ${inputSchemaErrors.map((o) => o.message).join(", ")}`);
+  const inputs = await getInputsOrFail(pluginOptions);
+  if (!inputs) {
     return;
   }
-  const signature = body.signature;
-  if (!pluginOptions.bypassSignatureVerification && !(await verifySignature(pluginOptions.kernelPublicKey, body, signature))) {
-    core.setFailed(`Error: Invalid signature`);
-    return;
-  }
-  const inputs = Value.Decode(inputSchema, body);
-
-  let config: TConfig;
-  if (pluginOptions.settingsSchema) {
-    try {
-      config = Value.Decode(pluginOptions.settingsSchema, Value.Default(pluginOptions.settingsSchema, inputs.settings));
-    } catch (e) {
-      console.dir(...Value.Errors(pluginOptions.settingsSchema, inputs.settings), { depth: null });
-      core.setFailed(`Error: Invalid settings provided.`);
-      throw e;
-    }
-  } else {
-    config = inputs.settings as TConfig;
-  }
-
-  let env: TEnv;
-  if (pluginOptions.envSchema) {
-    try {
-      env = Value.Decode(pluginOptions.envSchema, Value.Default(pluginOptions.envSchema, process.env));
-    } catch (e) {
-      console.dir(...Value.Errors(pluginOptions.envSchema, process.env), { depth: null });
-      core.setFailed(`Error: Invalid environment provided.`);
-      throw e;
-    }
-  } else {
-    env = process.env as TEnv;
-  }
-
-  const command = getCommand<TCommand>(inputs, pluginOptions);
 
   const context: Context<TConfig, TEnv, TCommand, TSupportedEvents> = {
     eventName: inputs.eventName as TSupportedEvents,
     payload: inputs.eventPayload,
-    command: command,
+    command: null,
     authToken: inputs.authToken,
     ubiquityKernelToken: inputs.ubiquityKernelToken,
     octokit: new customOctokit({ auth: inputs.authToken }),
-    config: config,
-    env: env,
+    config: inputs.settings as TConfig,
+    env: process.env as TEnv,
     logger: new Logs(pluginOptions.logLevel),
     commentHandler: new CommentHandler(),
   };
 
+  const configResult = decodeWithSchema<TConfig>(pluginOptions.settingsSchema, inputs.settings, "Error: Invalid settings provided.");
+  if (!configResult.value) {
+    await handleError(context, pluginOptions, configResult.error ?? new Error("Error: Invalid settings provided."));
+    return;
+  }
+  context.config = configResult.value;
+
+  const envResult = decodeWithSchema<TEnv>(pluginOptions.envSchema, process.env, "Error: Invalid environment provided.");
+  if (!envResult.value) {
+    await handleError(context, pluginOptions, envResult.error ?? new Error("Error: Invalid environment provided."));
+    return;
+  }
+  context.env = envResult.value;
+
   try {
+    context.command = getCommand<TCommand>(inputs, pluginOptions);
     const result = await handler(context);
     core.setOutput("result", result);
-    if (pluginOptions?.returnDataToKernel) {
+    if (pluginOptions.returnDataToKernel && pluginGithubToken) {
       await returnDataToKernel(pluginGithubToken, inputs.stateId, result);
     }
   } catch (error) {
@@ -109,10 +137,11 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
 }
 
 async function returnDataToKernel(repoToken: string, stateId: string, output: HandlerReturn) {
+  const githubContext = getGithubContext();
   const octokit = new customOctokit({ auth: repoToken });
   await octokit.rest.repos.createDispatchEvent({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
+    owner: githubContext.repo.owner,
+    repo: githubContext.repo.repo,
     event_type: "return-data-to-ubiquity-os-kernel",
     client_payload: {
       state_id: stateId,

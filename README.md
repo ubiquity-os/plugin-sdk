@@ -11,11 +11,15 @@ This project provides a software development kit (SDK) for creating plugins usin
 
 ### `createActionsPlugin`
 
-The `createActionsPlugin` function allows users to create plugins that will be able to run on GitHub Actions.
+The `createActionsPlugin` function allows users to create plugins that will run on GitHub Actions.
 
 ### `createPlugin`
 
-The `createPlugin` function enables users to create a plugin that will run on Cloudflare Workers environment.
+The `createPlugin` function enables users to create a plugin that will run on Cloudflare Workers environment. It accepts a handler and a manifest.
+
+### `callLlm`
+
+The `callLlm` function sends chat completion requests to `ai.ubq.fi` using the auth token and repository context supplied by the kernel.
 
 ### `callLlm`
 
@@ -23,7 +27,11 @@ The `callLlm` function sends chat completion requests to `ai.ubq.fi` using the a
 
 ### `postComment`
 
-The `postComment` function enables users to easily post a comment to an issue, a pull-request, or a pull request review thread.
+Use `context.commentHandler.postComment` to write or update a comment on the triggering issue or pull request.
+
+```typescript
+await context.commentHandler.postComment(context, context.logger.ok("Done"));
+```
 
 ## Getting Started
 
@@ -36,11 +44,11 @@ To set up the project locally, `bun` is the preferred package manager.
    ```
 
 2. Build the SDK
-   ```
-   bun sdk:build
+   ```sh
+   bun run sdk:build
    ```
 3. Link it locally to another plugin
-   ```
+   ```sh
    bun link
    ```
 
@@ -49,9 +57,12 @@ To set up the project locally, `bun` is the preferred package manager.
 The project provides several npm scripts for various tasks:
 
 - `bun run sdk:build`: Compiles the TypeScript code.
-- `bun run test`: Runs the tests.
-- `bun run lint`: Runs the linter.
-- `bun run format`: Formats the code using Prettier.
+- `bun run jest:test`: Runs the tests with coverage.
+- `bun run format`: Runs lint, prettier, and cspell formatting.
+- `bun run format:lint`: Runs the linter.
+- `bun run format:prettier`: Formats the code using Prettier.
+- `bun run format:cspell`: Runs cspell checks.
+- `bun run knip`: Runs knip checks.
 
 ## Testing
 
@@ -60,7 +71,33 @@ The project provides several npm scripts for various tasks:
 To start Jest tests, run:
 
 ```sh
-bun run test
+bun run jest:test
+```
+
+## LLM Utility
+
+```ts
+import { callLlm } from "@ubiquity-os/plugin-sdk";
+
+const result = await callLlm(
+  {
+    messages: [{ role: "user", content: "Summarize this issue." }],
+  },
+  context
+);
+```
+
+## LLM Utility
+
+```ts
+import { callLlm } from "@ubiquity-os/plugin-sdk";
+
+const result = await callLlm(
+  {
+    messages: [{ role: "user", content: "Summarize this issue." }],
+  },
+  context
+);
 ```
 
 ## LLM Utility

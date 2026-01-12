@@ -10,15 +10,21 @@ export type GithubPlugin = {
   ref?: string;
 };
 
+const urlRegex = /^https?:\/\/\S+$/;
+
 /**
  * Parses a plugin identifier string into its constituent parts.
  * @param value - Plugin identifier in format: "owner/repo[:workflowId][@ref]"
  * @returns Parsed plugin information including owner, repo, workflowId (defaults to "compute.yml"), and optional ref
  * @throws Error if the plugin name format is invalid
  * @example parsePluginIdentifier("ubiquity-os/plugin-name") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "compute.yml" }
+ * @example parsePluginIdentifier("ubiquity-os/plugin-name:compute.yml") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "compute.yml" }
  * @example parsePluginIdentifier("ubiquity-os/plugin-name:custom.yml@v1.0.0") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "custom.yml", ref: "v1.0.0" }
  */
-export function parsePluginIdentifier(value: string): GithubPlugin {
+export function parsePluginIdentifier(value: string): GithubPlugin | string {
+  if (urlRegex.test(value)) {
+    return value;
+  }
   const matches = pluginNameRegex.exec(value);
   if (!matches) {
     throw new Error(`Invalid plugin name: ${value}`);
@@ -62,6 +68,7 @@ export type PluginSettings = StaticDecode<typeof pluginSettingsSchema>;
 
 export const configSchema = T.Object(
   {
+    imports: T.Optional(T.Array(T.String(), { default: [] })),
     plugins: T.Record(T.String(), pluginSettingsSchema, { default: {} }),
   },
   {

@@ -33,6 +33,7 @@ export class PluginInput<T extends EmitterWebhookEventName = EmitterWebhookEvent
     this.ubiquityKernelToken = ubiquityKernelToken;
     this.ref = ref;
     this.command = command;
+    this.ubiquityKernelToken = ubiquityKernelToken;
   }
 
   public async getInputs() {

@@ -10,6 +10,8 @@ export type GithubPlugin = {
   ref?: string;
 };
 
+const urlRegex = /^https?:\/\/\S+$/;
+
 /**
  * Parses a plugin identifier string into its constituent parts.
  * @param value - Plugin identifier in format: "owner/repo[:workflowId][@ref]"
@@ -19,7 +21,10 @@ export type GithubPlugin = {
  * @example parsePluginIdentifier("ubiquity-os/plugin-name:compute.yml") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "compute.yml" }
  * @example parsePluginIdentifier("ubiquity-os/plugin-name:custom.yml@v1.0.0") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "custom.yml", ref: "v1.0.0" }
  */
-export function parsePluginIdentifier(value: string): GithubPlugin {
+export function parsePluginIdentifier(value: string): GithubPlugin | string {
+  if (urlRegex.test(value)) {
+    return value;
+  }
   const matches = pluginNameRegex.exec(value);
   if (!matches) {
     throw new Error(`Invalid plugin name: ${value}`);

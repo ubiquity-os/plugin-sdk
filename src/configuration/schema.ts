@@ -18,6 +18,7 @@ const urlRegex = /^https?:\/\/\S+$/;
  * @returns Parsed plugin information including owner, repo, workflowId (defaults to "compute.yml"), and optional ref
  * @throws Error if the plugin name format is invalid
  * @example parsePluginIdentifier("ubiquity-os/plugin-name") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "compute.yml" }
+ * @example parsePluginIdentifier("ubiquity-os/plugin-name:compute.yml") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "compute.yml" }
  * @example parsePluginIdentifier("ubiquity-os/plugin-name:custom.yml@v1.0.0") // { owner: "ubiquity-os", repo: "plugin-name", workflowId: "custom.yml", ref: "v1.0.0" }
  */
 export function parsePluginIdentifier(value: string): GithubPlugin | string {
@@ -67,6 +68,7 @@ export type PluginSettings = StaticDecode<typeof pluginSettingsSchema>;
 
 export const configSchema = T.Object(
   {
+    imports: T.Optional(T.Array(T.String(), { default: [] })),
     plugins: T.Record(T.String(), pluginSettingsSchema, { default: {} }),
   },
   {

@@ -1,46 +1,81 @@
-import type { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import type {
+  ChatCompletion,
+  ChatCompletionChunk,
+  ChatCompletionCreateParamsNonStreaming,
+  ChatCompletionMessageParam,
+} from "openai/resources/chat/completions";
 import type { Context } from "../context";
-import { normalizeBaseUrl } from "../helpers/urls";
+import type { PluginInput } from "../signature";
 
-type LlmResponseFormat = { type: "json_object" | "text" } | { type: string; [key: string]: unknown };
-type LlmPayload = {
-  repository?: { owner?: { login?: string }; name?: string };
-  installation?: { id?: number };
-};
-
-type LlmAuthContext = {
-  authToken?: string;
-  ubiquityKernelToken?: string;
-  payload?: LlmPayload;
-  eventPayload?: LlmPayload;
-};
+// eslint-disable-next-line @ubiquity-os/no-empty-strings
+const EMPTY_STRING = "";
 
 export type LlmCallOptions = {
   baseUrl?: string;
   model?: string;
   stream?: boolean;
   messages: ChatCompletionMessageParam[];
-  max_tokens?: number;
-  max_completion_tokens?: number;
-  temperature?: number;
-  top_p?: number;
-  frequency_penalty?: number;
-  presence_penalty?: number;
-  response_format?: LlmResponseFormat;
-  stop?: string | string[];
-  n?: number;
-  logit_bias?: Record<string, number>;
-  seed?: number;
-  user?: string;
-  metadata?: Record<string, unknown>;
-  tools?: unknown[];
-  tool_choice?: string | Record<string, unknown>;
-  [key: string]: unknown;
-};
+  aiAuthToken?: string;
+} & Partial<Omit<ChatCompletionCreateParamsNonStreaming, "model" | "messages" | "stream">>;
+
+function normalizeBaseUrl(baseUrl: string): string {
+  let normalized = baseUrl.trim();
+  while (normalized.endsWith("/")) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
+}
+
+const MAX_LLM_RETRIES = 2;
+const RETRY_BACKOFF_MS = [250, 750];
+
+function getRetryDelayMs(attempt: number): number {
+  return RETRY_BACKOFF_MS[Math.min(attempt, RETRY_BACKOFF_MS.length - 1)] ?? 750;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function getEnvString(name: string): string {
-  if (typeof process === "undefined" || !process?.env) return "";
-  return String(process.env[name] ?? "").trim();
+  if (typeof process === "undefined" || !process?.env) return EMPTY_STRING;
+  return String(process.env[name] ?? EMPTY_STRING).trim();
+}
+
+function normalizeToken(value: unknown): string {
+  return typeof value === "string" ? value.trim() : EMPTY_STRING;
+}
+
+function isGitHubToken(token: string): boolean {
+  return token.trim().startsWith("gh");
+}
+
+function getEnvTokenFromInput(input: PluginInput | Context): string {
+  if ("env" in input) {
+    const envValue = (input as Context).env;
+    if (envValue && typeof envValue === "object") {
+      const token = normalizeToken((envValue as Record<string, unknown>).UOS_AI_TOKEN);
+      if (token) return token;
+    }
+  }
+
+  return getEnvString("UOS_AI_TOKEN");
+}
+
+function resolveAuthToken(input: PluginInput | Context, aiAuthToken?: string): { token: string; isGitHub: boolean } {
+  const explicit = normalizeToken(aiAuthToken);
+  if (explicit) return { token: explicit, isGitHub: isGitHubToken(explicit) };
+
+  const envToken = getEnvTokenFromInput(input);
+  if (envToken) return { token: envToken, isGitHub: isGitHubToken(envToken) };
+
+  const fallback = normalizeToken((input as { authToken?: string }).authToken);
+  if (!fallback) {
+    const err = new Error("Missing auth token; set UOS_AI_TOKEN, pass aiAuthToken, or provide authToken in input");
+    (err as Error & { status?: number }).status = 401;
+    throw err;
+  }
+  return { token: fallback, isGitHub: isGitHubToken(fallback) };
 }
 
 function getAiBaseUrl(options: LlmCallOptions): string {
@@ -48,30 +83,21 @@ function getAiBaseUrl(options: LlmCallOptions): string {
     return normalizeBaseUrl(options.baseUrl);
   }
 
-  const envBaseUrl = getEnvString("UBQ_AI_BASE_URL") || getEnvString("UBQ_AI_URL");
+  const envBaseUrl = getEnvString("UOS_AI_URL");
   if (envBaseUrl) return normalizeBaseUrl(envBaseUrl);
 
   return "https://ai.ubq.fi";
 }
 
-export async function callLlm(options: LlmCallOptions, input: Context | LlmAuthContext): Promise<ChatCompletion | AsyncIterable<ChatCompletionChunk>> {
-  const inputPayload = input as LlmAuthContext;
-  const authToken = inputPayload.authToken;
-  const ubiquityKernelToken = inputPayload.ubiquityKernelToken;
-  const payload = inputPayload.payload ?? inputPayload.eventPayload;
-  const owner = payload?.repository?.owner?.login ?? "";
-  const repo = payload?.repository?.name ?? "";
-  const installationId = payload?.installation?.id;
+export async function callLlm(options: LlmCallOptions, input: PluginInput | Context): Promise<ChatCompletion | AsyncIterable<ChatCompletionChunk>> {
+  const { baseUrl, model, stream: isStream, messages, aiAuthToken, ...rest } = options;
+  const { token: authToken, isGitHub } = resolveAuthToken(input, aiAuthToken);
+  const kernelToken = "ubiquityKernelToken" in input ? input.ubiquityKernelToken : undefined;
+  const payload = getPayload(input);
+  const { owner, repo, installationId } = getRepoMetadata(payload);
 
-  if (!authToken) throw new Error("Missing authToken in inputs");
-
-  const isKernelTokenRequired = authToken.trim().startsWith("gh");
-  if (isKernelTokenRequired && !ubiquityKernelToken) {
-    throw new Error("Missing ubiquityKernelToken in inputs (kernel attestation is required for GitHub auth)");
-  }
-
-  const { baseUrl, model, stream: isStream, messages, ...rest } = options;
-  const url = `${getAiBaseUrl({ ...options, baseUrl })}/v1/chat/completions`;
+  ensureMessages(messages);
+  const url = buildAiUrl(options, baseUrl);
   const body = JSON.stringify({
     ...rest,
     ...(model ? { model } : {}),
@@ -79,25 +105,14 @@ export async function callLlm(options: LlmCallOptions, input: Context | LlmAuthC
     stream: isStream ?? false,
   });
 
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${authToken}`,
-    "Content-Type": "application/json",
-  };
+  const headers = buildHeaders(authToken, {
+    owner,
+    repo,
+    installationId,
+    ubiquityKernelToken: isGitHub ? kernelToken : undefined,
+  });
 
-  if (owner) headers["X-GitHub-Owner"] = owner;
-  if (repo) headers["X-GitHub-Repo"] = repo;
-  if (typeof installationId === "number" && Number.isFinite(installationId)) {
-    headers["X-GitHub-Installation-Id"] = String(installationId);
-  }
-  if (ubiquityKernelToken) {
-    headers["X-Ubiquity-Kernel-Token"] = ubiquityKernelToken;
-  }
-
-  const response = await fetch(url, { method: "POST", headers, body });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`LLM API error: ${response.status} - ${err}`);
-  }
+  const response = await fetchWithRetry(url, { method: "POST", headers, body }, MAX_LLM_RETRIES);
 
   if (isStream) {
     if (!response.body) {
@@ -105,29 +120,163 @@ export async function callLlm(options: LlmCallOptions, input: Context | LlmAuthC
     }
     return parseSseStream(response.body);
   }
-  return response.json();
+  const rawText = await response.text();
+  try {
+    return JSON.parse(rawText) as ChatCompletion;
+  } catch (err) {
+    const preview = rawText ? rawText.slice(0, 1000) : EMPTY_STRING;
+    const message = "LLM API error: failed to parse JSON response from server" + (preview ? `; response body (truncated): ${preview}` : EMPTY_STRING);
+    const error = new Error(message);
+    (error as Error & { cause?: unknown; status?: number }).cause = err;
+    (error as Error & { cause?: unknown; status?: number }).status = response.status;
+    throw error;
+  }
+}
+
+function ensureMessages(messages: ChatCompletionMessageParam[]) {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    const err = new Error("messages must be a non-empty array");
+    (err as Error & { status?: number }).status = 400;
+    throw err;
+  }
+}
+
+function buildAiUrl(options: LlmCallOptions, baseUrl?: string): string {
+  return `${getAiBaseUrl({ ...options, baseUrl })}/v1/chat/completions`;
+}
+
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries: number): Promise<Response> {
+  let attempt = 0;
+  let lastError: unknown;
+
+  while (attempt <= maxRetries) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+      throw await buildResponseError(response);
+    } catch (error) {
+      lastError = error;
+      if (!shouldRetryError(error, attempt, maxRetries)) throw error;
+      await sleep(getRetryDelayMs(attempt));
+      attempt += 1;
+    }
+  }
+
+  throw lastError ?? new Error("LLM API error: request failed after retries");
+}
+
+async function buildResponseError(response: Response): Promise<Error & { status?: number }> {
+  const errText = await response.text();
+  const error = new Error(`LLM API error: ${response.status} - ${errText}`);
+  (error as Error & { status?: number }).status = response.status;
+  return error as Error & { status?: number };
+}
+
+function shouldRetryError(error: unknown, attempt: number, maxRetries: number): boolean {
+  if (attempt >= maxRetries) return false;
+  const status = getErrorStatus(error);
+  if (typeof status === "number") {
+    return status >= 500;
+  }
+  return true;
+}
+
+function getErrorStatus(error: unknown): number | undefined {
+  return typeof (error as { status?: number })?.status === "number" ? (error as { status?: number }).status : undefined;
+}
+
+function getPayload(input: PluginInput | Context): unknown {
+  if ("payload" in input) {
+    return (input as Context).payload;
+  }
+  return (input as PluginInput).eventPayload;
+}
+
+function getRepoMetadata(payload: unknown): { owner: string; repo: string; installationId?: number } {
+  const repoPayload = payload as {
+    repository?: { owner?: { login?: string }; name?: string };
+    installation?: { id?: number };
+  };
+  return {
+    owner: repoPayload?.repository?.owner?.login ?? EMPTY_STRING,
+    repo: repoPayload?.repository?.name ?? EMPTY_STRING,
+    installationId: repoPayload?.installation?.id,
+  };
+}
+
+function buildHeaders(
+  authToken: string,
+  options: { owner: string; repo: string; installationId?: number; ubiquityKernelToken?: string }
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${authToken}`,
+    "Content-Type": "application/json",
+  };
+
+  if (options.owner) headers["X-GitHub-Owner"] = options.owner;
+  if (options.repo) headers["X-GitHub-Repo"] = options.repo;
+  if (typeof options.installationId === "number" && Number.isFinite(options.installationId)) {
+    headers["X-GitHub-Installation-Id"] = String(options.installationId);
+  }
+  if (options.ubiquityKernelToken) {
+    headers["X-Ubiquity-Kernel-Token"] = options.ubiquityKernelToken;
+  }
+
+  return headers;
 }
 
 async function* parseSseStream(body: ReadableStream<Uint8Array>): AsyncIterable<ChatCompletionChunk> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
-  let buffer = "";
+  let buffer = EMPTY_STRING;
   try {
     while (true) {
       const { value, done: isDone } = await reader.read();
       if (isDone) break;
       buffer += decoder.decode(value, { stream: true });
-      const events = buffer.split("\n\n");
-      buffer = events.pop() || "";
+      const { events, remainder } = splitSseEvents(buffer);
+      buffer = remainder;
       for (const event of events) {
-        if (event.startsWith("data: ")) {
-          const data = event.slice(6);
-          if (data === "[DONE]") return;
-          yield JSON.parse(data) as ChatCompletionChunk;
-        }
+        const data = getEventData(event);
+        if (!data) continue;
+        if (data.trim() === "[DONE]") return;
+        yield parseEventData(data);
       }
     }
   } finally {
     reader.releaseLock();
+  }
+}
+
+function splitSseEvents(buffer: string): { events: string[]; remainder: string } {
+  const normalized = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const parts = normalized.split("\n\n");
+  const remainder = parts.pop() ?? EMPTY_STRING;
+  return { events: parts, remainder };
+}
+
+function getEventData(event: string): string | null {
+  if (!event.trim()) return null;
+  const dataLines = event.split("\n").filter((line) => line.startsWith("data:"));
+  if (!dataLines.length) return null;
+  const data = dataLines.map((line) => (line.startsWith("data: ") ? line.slice(6) : line.slice(5).replace(/^ /, EMPTY_STRING))).join("\n");
+  return data || null;
+}
+
+function parseEventData(data: string): ChatCompletionChunk {
+  try {
+    return JSON.parse(data) as ChatCompletionChunk;
+  } catch (error) {
+    if (data.includes("\n")) {
+      const collapsed = data.replace(/\n/g, EMPTY_STRING);
+      try {
+        return JSON.parse(collapsed) as ChatCompletionChunk;
+      } catch {
+        // fall through to the original error
+      }
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    const preview = data.length > 200 ? `${data.slice(0, 200)}...` : data;
+    throw new Error(`LLM stream parse error: ${message}. Data: ${preview}`);
   }
 }

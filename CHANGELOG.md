@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.9.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.8.4...v3.9.0) (2026-01-12)
+
+
+### Features
+
+* load url plugin manifests ([58581c6](https://github.com/ubiquity-os/plugin-sdk/commit/58581c6185b96f7e12309b27d90aba7edeb5e0ed))
+* sync plugin-sdk updates ([94a2d8f](https://github.com/ubiquity-os/plugin-sdk/commit/94a2d8fb082e61ff514c41ac89ba7ac29796689d))
+
+
+### Bug Fixes
+
+* address review feedback ([2c1a19a](https://github.com/ubiquity-os/plugin-sdk/commit/2c1a19af7dc502ffeadd7b735830f3473493c2df))
+* guard missing action signatures ([2f4f5d6](https://github.com/ubiquity-os/plugin-sdk/commit/2f4f5d62cd5d05ebf45526c8ecb9f3a6719b12fd))
+* handle actions decode failures and redact config logs ([7960366](https://github.com/ubiquity-os/plugin-sdk/commit/7960366e5b84b2d380bf5556dd473301ea0573a0))
+* relax logger ok requirement + add signature tests ([d296b2b](https://github.com/ubiquity-os/plugin-sdk/commit/d296b2b12f80bad6e4f471f457b924fad1864ebe))
+* use resolved options in actions ([4e8221c](https://github.com/ubiquity-os/plugin-sdk/commit/4e8221cec08cb32836b2d1d09ae8ef66382b71f7))
+
 ## [3.8.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.8.3...v3.8.4) (2026-01-02)
 
 

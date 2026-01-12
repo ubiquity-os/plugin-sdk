@@ -39,7 +39,7 @@ interface IssueContext {
 const COMMAND_RESPONSE_KIND = "command-response";
 const COMMAND_RESPONSE_MARKER = `"commentKind": "${COMMAND_RESPONSE_KIND}"`;
 const COMMAND_RESPONSE_COMMENT_LIMIT = 50;
-const RECENT_COMMENTS_QUERY = `
+const RECENT_COMMENTS_QUERY = /* GraphQL */ `
   query($owner: String!, $repo: String!, $number: Int!, $last: Int!) {
     repository(owner: $owner, name: $repo) {
       issueOrPullRequest(number: $number) {

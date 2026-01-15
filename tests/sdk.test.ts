@@ -4,7 +4,7 @@ import * as crypto from "crypto";
 import { http, HttpResponse } from "msw";
 import { KERNEL_PUBLIC_KEY } from "../src/constants";
 import { compressString } from "../src/helpers/compression";
-import { retry } from "../src/helpers/retry";
+import { checkLlmRetryableState, retry } from "../src/helpers/retry";
 import { signPayload, verifySignature } from "../src/signature";
 import type { Context } from "../src/context";
 import type { CommandCall } from "../src/types/command";
@@ -530,5 +530,34 @@ describe("SDK retry tests", () => {
       })
     ).rejects.toMatchObject({ status: 400 });
     expect(onErrorHandler).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("SDK LLM retry helper tests", () => {
+  it("should treat parseable retry-after headers as a delay", () => {
+    const error = {
+      status: 429,
+      headers: {
+        "x-ratelimit-reset-tokens": "1s",
+        "x-ratelimit-reset-requests": "2s",
+      },
+    };
+    expect(checkLlmRetryableState(error)).toBe(2000);
+  });
+
+  it("should parse numeric retry-after as seconds", () => {
+    const error = {
+      status: 429,
+      headers: {
+        "retry-after": "5",
+      },
+    };
+    expect(checkLlmRetryableState(error)).toBe(5000);
+  });
+
+  it("should retry on syntax errors and server status codes", () => {
+    expect(checkLlmRetryableState(new SyntaxError("bad json"))).toBe(true);
+    expect(checkLlmRetryableState({ message: "HTTP 503 Service Unavailable" })).toBe(true);
+    expect(checkLlmRetryableState({ status: 400 })).toBe(false);
   });
 });

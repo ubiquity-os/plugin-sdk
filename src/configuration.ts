@@ -13,7 +13,7 @@ export const CONFIG_ORG_REPO = ".ubiquity-os";
 const EMPTY_STRING = "";
 
 type Location = { owner: string; repo: string };
-type ConfigurationRefOptions = {
+export type ConfigurationRefOptions = {
   orgRef?: string;
   repoRef?: string;
 };

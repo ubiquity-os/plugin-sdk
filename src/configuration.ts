@@ -316,6 +316,7 @@ export class ConfigurationHandler {
    *
    * @param owner The repository owner
    * @param repository The repository name
+   * @param options - Optional ref (branch, tag, or commit SHA) for the configuration lookup
    */
   public async getConfigurationFromRepo(owner: string, repository: string, options?: { ref?: string }) {
     const location = { owner, repo: repository };

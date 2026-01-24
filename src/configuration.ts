@@ -216,6 +216,7 @@ export class ConfigurationHandler {
   /**
    * Retrieves and merges configuration from organization and repository levels.
    * @param location - Optional repository location (`owner` and `repo`). If not provided, returns the default configuration.
+   * @param options - Optional refs for organization/repository configuration lookups
    * @returns The merged plugin configuration with resolved plugin settings.
    */
   public async getConfiguration(location?: Location, options?: ConfigurationRefOptions) {

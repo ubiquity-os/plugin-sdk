@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.10.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.9.0...v3.10.0) (2026-01-24)
+
+
+### Features
+
+* add ref overrides for configuration fetches ([#174](https://github.com/ubiquity-os/plugin-sdk/issues/174)) ([a915b12](https://github.com/ubiquity-os/plugin-sdk/commit/a915b12ef4218830ad44ae5cb6482a5fac38217c))
+
 ## [3.9.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.8.4...v3.9.0) (2026-01-12)
 
 

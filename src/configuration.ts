@@ -13,6 +13,10 @@ export const CONFIG_ORG_REPO = ".ubiquity-os";
 const EMPTY_STRING = "";
 
 type Location = { owner: string; repo: string };
+export type ConfigurationRefOptions = {
+  orgRef?: string;
+  repoRef?: string;
+};
 type OctokitFactory = (location: Location) => Promise<Context["octokit"] | null>;
 type ImportState = {
   cache: Map<string, PluginConfiguration | null>;
@@ -188,18 +192,21 @@ export class ConfigurationHandler {
    *  Retrieves the configuration for the current plugin based on its manifest.
    *  @param manifest - The plugin manifest containing the `short_name` identifier
    *  @param location - Optional repository location (`owner/repo`)
+   *  @param options - Optional refs for organization/repository configuration lookups
    *  @returns The plugin's configuration or null if not found
    **/
   public async getSelfConfiguration<T extends NonNullable<PluginSettings>["with"]>(
     manifest: Pick<Manifest, "short_name" | "homepage_url">,
-    location?: Location
+    location?: Location,
+    options?: ConfigurationRefOptions
   ): Promise<T | null> {
-    const cfg = await this.getConfiguration(location);
+    const cfg = await this.getConfiguration(location, options);
     let selfConfig: string | undefined;
     if (manifest.homepage_url) {
       const name = manifest.homepage_url;
       selfConfig = Object.keys(cfg.plugins).find((key) => normalizeBaseUrl(key) === normalizeBaseUrl(name));
-    } else {
+    }
+    if (!selfConfig) {
       const name = manifest.short_name.split("@")[0];
       selfConfig = Object.keys(cfg.plugins).find((key) => new RegExp(`^${name}(?:$|@.+)`).exec(key.replace(/:[^@]+/, "")));
     }
@@ -209,9 +216,10 @@ export class ConfigurationHandler {
   /**
    * Retrieves and merges configuration from organization and repository levels.
    * @param location - Optional repository location (`owner` and `repo`). If not provided, returns the default configuration.
+   * @param options - Optional refs for organization/repository configuration lookups
    * @returns The merged plugin configuration with resolved plugin settings.
    */
-  public async getConfiguration(location?: Location) {
+  public async getConfiguration(location?: Location, options?: ConfigurationRefOptions) {
     const defaultConfiguration = stripImports(Value.Decode(configSchema, Value.Default(configSchema, {})));
 
     if (!location) {
@@ -219,7 +227,7 @@ export class ConfigurationHandler {
       return defaultConfiguration;
     }
 
-    const mergedConfiguration = await this._getMergedConfiguration(location, defaultConfiguration);
+    const mergedConfiguration = await this._getMergedConfiguration(location, defaultConfiguration, options);
     const resolvedPlugins = await this._resolvePlugins(mergedConfiguration, location);
     return {
       ...mergedConfiguration,
@@ -227,7 +235,11 @@ export class ConfigurationHandler {
     };
   }
 
-  private async _getMergedConfiguration(location: Location, defaultConfiguration: PluginConfiguration): Promise<PluginConfiguration> {
+  private async _getMergedConfiguration(
+    location: Location,
+    defaultConfiguration: PluginConfiguration,
+    options?: ConfigurationRefOptions
+  ): Promise<PluginConfiguration> {
     const { owner, repo } = location;
     let mergedConfiguration = defaultConfiguration;
 
@@ -236,8 +248,8 @@ export class ConfigurationHandler {
       repo: `${owner}/${repo}`,
     });
 
-    const orgConfig = await this.getConfigurationFromRepo(owner, CONFIG_ORG_REPO);
-    const repoConfig = await this.getConfigurationFromRepo(owner, repo);
+    const orgConfig = await this.getConfigurationFromRepo(owner, CONFIG_ORG_REPO, options?.orgRef ? { ref: options.orgRef } : undefined);
+    const repoConfig = await this.getConfigurationFromRepo(owner, repo, options?.repoRef ? { ref: options.repoRef } : undefined);
 
     if (orgConfig.config) {
       mergedConfiguration = this.mergeConfigurations(mergedConfiguration, orgConfig.config);
@@ -305,8 +317,9 @@ export class ConfigurationHandler {
    *
    * @param owner The repository owner
    * @param repository The repository name
+   * @param options - Optional ref (branch, tag, or commit SHA) for the configuration lookup
    */
-  public async getConfigurationFromRepo(owner: string, repository: string) {
+  public async getConfigurationFromRepo(owner: string, repository: string, options?: { ref?: string }) {
     const location = { owner, repo: repository };
     const state = this._createImportState();
     const octokit = await this._getOctokitForLocation(location, state);
@@ -315,7 +328,7 @@ export class ConfigurationHandler {
       return { config: null, errors: null, rawData: null };
     }
 
-    const { config, imports, errors, rawData } = await this._loadConfigSource(location, octokit);
+    const { config, imports, errors, rawData } = await this._loadConfigSource(location, octokit, options?.ref);
     if (!rawData) {
       return { config: null, errors: null, rawData: null };
     }
@@ -367,11 +380,12 @@ export class ConfigurationHandler {
     return this._octokit;
   }
 
-  private async _loadConfigSource(location: Location, octokit: Context["octokit"]) {
+  private async _loadConfigSource(location: Location, octokit: Context["octokit"], ref?: string) {
     const rawData = await this._download({
       repository: location.repo,
       owner: location.owner,
       octokit,
+      ref,
     });
     if (!rawData) {
       this._logger.warn("No raw configuration data", { owner: location.owner, repository: location.repo });
@@ -453,14 +467,24 @@ export class ConfigurationHandler {
     return resolved;
   }
 
-  private async _download({ repository, owner, octokit }: { repository: string; owner: string; octokit: Context["octokit"] }): Promise<string | null> {
+  private async _download({
+    repository,
+    owner,
+    octokit,
+    ref,
+  }: {
+    repository: string;
+    owner: string;
+    octokit: Context["octokit"];
+    ref?: string;
+  }): Promise<string | null> {
     if (!repository || !owner) {
       this._logger.warn("Repo or owner is not defined, cannot download the requested file");
       return null;
     }
     const pathList = getConfigPathCandidatesForEnvironment(this._environment);
     for (const filePath of pathList) {
-      const content = await this._tryDownloadPath({ repository, owner, octokit, filePath });
+      const content = await this._tryDownloadPath({ repository, owner, octokit, filePath, ref });
       if (content !== null) return content;
     }
     return null;
@@ -471,11 +495,13 @@ export class ConfigurationHandler {
     owner,
     octokit,
     filePath,
+    ref,
   }: {
     repository: string;
     owner: string;
     octokit: Context["octokit"];
     filePath: string;
+    ref?: string;
   }): Promise<string | null> {
     try {
       this._logger.info("Attempting to fetch configuration", { owner, repository, filePath });
@@ -483,6 +509,7 @@ export class ConfigurationHandler {
         owner,
         repo: repository,
         path: filePath,
+        ...(ref ? { ref } : {}),
         mediaType: { format: "raw" },
       });
       logOk(this._logger, "Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"] });

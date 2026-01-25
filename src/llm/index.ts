@@ -86,7 +86,7 @@ function getAiBaseUrl(options: LlmCallOptions): string {
   const envBaseUrl = getEnvString("UOS_AI_URL");
   if (envBaseUrl) return normalizeBaseUrl(envBaseUrl);
 
-  return "https://ai.ubq.fi";
+  return "https://ai-ubq-fi.deno.dev";
 }
 
 export async function callLlm(options: LlmCallOptions, input: PluginInput | Context): Promise<ChatCompletion | AsyncIterable<ChatCompletionChunk>> {

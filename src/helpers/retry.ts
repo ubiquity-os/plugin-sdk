@@ -13,6 +13,27 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function handleRetryError(err: unknown, delay: number, options: RetryOptions, isLastLoop: boolean) {
+  const lastError = err;
+  if (options.onError) {
+    await options.onError(err);
+  }
+  let shouldRetry;
+  if (options.isErrorRetryable) {
+    shouldRetry = await options.isErrorRetryable(err);
+  }
+  if (shouldRetry === false || isLastLoop) {
+    throw lastError;
+  }
+  if (typeof shouldRetry === "number" && Number.isFinite(shouldRetry)) {
+    await sleep(shouldRetry);
+  } else {
+    await sleep(delay);
+    delay *= 2;
+  }
+  return { delay, lastError };
+}
+
 export async function retry<T>(fn: () => Promise<T>, options: RetryOptions): Promise<T> {
   let delay = 1000;
   let lastError: unknown = null;
@@ -20,22 +41,9 @@ export async function retry<T>(fn: () => Promise<T>, options: RetryOptions): Pro
     try {
       return await fn();
     } catch (err) {
-      lastError = err;
-      if (options.onError) {
-        await options.onError(err);
-      }
-      let shouldRetry;
-      if (options.isErrorRetryable) {
-        shouldRetry = await options.isErrorRetryable(err);
-      }
-      if (shouldRetry === false) {
-        throw lastError;
-      } else if (typeof shouldRetry === "number" && Number.isFinite(shouldRetry)) {
-        await sleep(shouldRetry);
-      } else {
-        await sleep(delay);
-        delay *= 2;
-      }
+      const result = await handleRetryError(err, delay, options, i >= options.maxRetries);
+      delay = result.delay;
+      lastError = result.lastError;
     }
   }
   throw lastError;

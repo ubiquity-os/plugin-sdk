@@ -1,8 +1,7 @@
 import { TypeBoxError } from "@sinclair/typebox";
 import { LogReturn } from "@ubiquity-os/ubiquity-os-logger";
 
-// eslint-disable-next-line @ubiquity-os/no-empty-strings
-const EMPTY_STRING = "";
+const EMPTY_STRING = String();
 
 interface RetryOptions {
   maxRetries: number;

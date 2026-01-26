@@ -125,6 +125,71 @@ describe("callLlm", () => {
     );
   });
 
+  it("refreshes kernel attestation before calling the LLM for GitHub auth", async () => {
+    const completion = {
+      id: "completion-2",
+      object: "chat.completion",
+      created: 1,
+      model: "gpt-5.1",
+      choices: [],
+    } as ChatCompletion;
+
+    const input = {
+      authToken: "ghs_initial_token",
+      ubiquityKernelToken: "kernel-initial",
+      eventPayload: {
+        repository: { owner: { login: "octo" }, name: "repo" },
+        installation: { id: 123 },
+      },
+      config: {
+        kernelRefreshUrl: "https://kernel.test/internal/agent/refresh-token",
+      },
+    };
+
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+      if (String(url) === "https://kernel.test/internal/agent/refresh-token") {
+        return new Response(JSON.stringify({ authToken: "ghs_refreshed", ubiquityKernelToken: "kernel-refreshed" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (String(url) === "https://ai.ubq.fi/v1/chat/completions") {
+        return new Response(JSON.stringify(completion), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
+
+    const result = await callLlm({ messages: [{ role: "user", content: "Hi" }], baseUrl: "https://ai.ubq.fi" }, input as typeof baseInput);
+
+    expect(result).toEqual(completion);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://kernel.test/internal/agent/refresh-token",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer ghs_initial_token",
+          "X-Ubiquity-Kernel-Token": "kernel-initial",
+          "X-GitHub-Owner": "octo",
+          "X-GitHub-Repo": "repo",
+          "X-GitHub-Installation-Id": "123",
+        }),
+      })
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://ai.ubq.fi/v1/chat/completions",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer ghs_refreshed",
+          "X-Ubiquity-Kernel-Token": "kernel-refreshed",
+        }),
+      })
+    );
+  });
+
   it("throws on API errors", async () => {
     const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue(new Response("bad request", { status: 400 }));
 

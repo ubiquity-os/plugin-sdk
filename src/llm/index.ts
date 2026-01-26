@@ -50,34 +50,6 @@ function isGitHubToken(token: string): boolean {
   return token.trim().startsWith("gh");
 }
 
-type KernelRefreshTokens = {
-  authToken: string;
-  kernelToken: string;
-  expiresAt?: string | null;
-};
-
-function readKernelRefreshUrl(value: unknown): string {
-  if (!value || typeof value !== "object") return EMPTY_STRING;
-  return normalizeToken((value as Record<string, unknown>).kernelRefreshUrl);
-}
-
-function getKernelRefreshUrl(input: PluginInput | Context): string {
-  const direct = normalizeToken((input as Record<string, unknown>).kernelRefreshUrl);
-  if (direct) return direct;
-  const fromConfig = readKernelRefreshUrl((input as { config?: unknown }).config);
-  if (fromConfig) return fromConfig;
-  return readKernelRefreshUrl((input as { settings?: unknown }).settings);
-}
-
-function updateInputTokens(input: PluginInput | Context, tokens: KernelRefreshTokens) {
-  if ("authToken" in input) {
-    (input as { authToken?: string }).authToken = tokens.authToken;
-  }
-  if ("ubiquityKernelToken" in input) {
-    (input as { ubiquityKernelToken?: string }).ubiquityKernelToken = tokens.kernelToken;
-  }
-}
-
 function getEnvTokenFromInput(input: PluginInput | Context): string {
   if ("env" in input) {
     const envValue = (input as Context).env;
@@ -119,27 +91,10 @@ function getAiBaseUrl(options: LlmCallOptions): string {
 
 export async function callLlm(options: LlmCallOptions, input: PluginInput | Context): Promise<ChatCompletion | AsyncIterable<ChatCompletionChunk>> {
   const { baseUrl, model, stream: isStream, messages, aiAuthToken, ...rest } = options;
-  const { token: resolvedAuthToken, isGitHub } = resolveAuthToken(input, aiAuthToken);
-  let authToken = resolvedAuthToken;
-  let kernelToken = "ubiquityKernelToken" in input ? input.ubiquityKernelToken : undefined;
+  const { token: authToken, isGitHub } = resolveAuthToken(input, aiAuthToken);
+  const kernelToken = "ubiquityKernelToken" in input ? input.ubiquityKernelToken : undefined;
   const payload = getPayload(input);
   const { owner, repo, installationId } = getRepoMetadata(payload);
-  const kernelRefreshUrl = getKernelRefreshUrl(input);
-  const hasExplicitAiAuth = Boolean(normalizeToken(aiAuthToken));
-
-  if (isGitHub && kernelRefreshUrl && kernelToken && !hasExplicitAiAuth) {
-    const refreshed = await refreshKernelTokens({
-      url: kernelRefreshUrl,
-      authToken,
-      kernelToken,
-      owner,
-      repo,
-      installationId,
-    });
-    authToken = refreshed.authToken;
-    kernelToken = refreshed.kernelToken;
-    updateInputTokens(input, refreshed);
-  }
 
   ensureMessages(messages);
   const url = buildAiUrl(options, baseUrl);
@@ -188,53 +143,6 @@ function ensureMessages(messages: ChatCompletionMessageParam[]) {
 
 function buildAiUrl(options: LlmCallOptions, baseUrl?: string): string {
   return `${getAiBaseUrl({ ...options, baseUrl })}/v1/chat/completions`;
-}
-
-async function refreshKernelTokens(params: {
-  url: string;
-  authToken: string;
-  kernelToken: string;
-  owner: string;
-  repo: string;
-  installationId?: number;
-}): Promise<KernelRefreshTokens> {
-  const headers = buildHeaders(params.authToken, {
-    owner: params.owner,
-    repo: params.repo,
-    installationId: params.installationId,
-    ubiquityKernelToken: params.kernelToken,
-  });
-  const response = await fetch(params.url, { method: "POST", headers });
-  const text = await response.text().catch(() => EMPTY_STRING);
-  if (!response.ok) {
-    const error = new Error(`Kernel refresh error: ${response.status} - ${text}`);
-    (error as Error & { status?: number }).status = response.status;
-    throw error;
-  }
-
-  let payload: Record<string, unknown> = {};
-  if (text.trim()) {
-    try {
-      payload = JSON.parse(text) as Record<string, unknown>;
-    } catch (err) {
-      const details = err instanceof Error ? ` (${err.message})` : "";
-      const error = new Error(`Kernel refresh error: failed to parse JSON response${details}`);
-      (error as Error & { status?: number }).status = response.status;
-      throw error;
-    }
-  }
-
-  const authToken = normalizeToken(payload.authToken);
-  const kernelToken = normalizeToken(payload.ubiquityKernelToken);
-  if (!authToken || !kernelToken) {
-    throw new Error("Kernel refresh error: response missing authToken or ubiquityKernelToken");
-  }
-
-  return {
-    authToken,
-    kernelToken,
-    expiresAt: typeof payload.expiresAt === "string" ? payload.expiresAt : null,
-  };
 }
 
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries: number): Promise<Response> {

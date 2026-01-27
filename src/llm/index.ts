@@ -119,6 +119,7 @@ function getAiBaseUrl(options: LlmCallOptions): string {
 
 export async function callLlm(options: LlmCallOptions, input: PluginInput | Context): Promise<ChatCompletion | AsyncIterable<ChatCompletionChunk>> {
   const { baseUrl, model, stream: isStream, messages, aiAuthToken, ...rest } = options;
+  ensureMessages(messages);
   const { token: resolvedAuthToken, isGitHub } = resolveAuthToken(input, aiAuthToken);
   let authToken = resolvedAuthToken;
   let kernelToken = "ubiquityKernelToken" in input ? input.ubiquityKernelToken : undefined;
@@ -141,7 +142,6 @@ export async function callLlm(options: LlmCallOptions, input: PluginInput | Cont
     updateInputTokens(input, refreshed);
   }
 
-  ensureMessages(messages);
   const url = buildAiUrl(options, baseUrl);
   const body = JSON.stringify({
     ...rest,

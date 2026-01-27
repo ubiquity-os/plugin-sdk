@@ -1,4 +1,4 @@
-import { TransformDecodeCheckError, Value } from "@sinclair/typebox/value";
+import { Value } from "@sinclair/typebox/value";
 import YAML, { YAMLException } from "js-yaml";
 import { Buffer } from "node:buffer";
 import { configSchema, GithubPlugin, parsePluginIdentifier, PluginConfiguration, PluginSettings } from "./configuration/schema";
@@ -12,10 +12,11 @@ export const CONFIG_ORG_REPO = ".ubiquity-os";
 // eslint-disable-next-line @ubiquity-os/no-empty-strings
 const EMPTY_STRING = "";
 
-type Location = { owner: string; repo: string };
+type Location = { owner: string; repo: string; environment?: string };
 export type ConfigurationRefOptions = {
   orgRef?: string;
   repoRef?: string;
+  environment?: string;
 };
 type OctokitFactory = (location: Location) => Promise<Context["octokit"] | null>;
 type ImportState = {
@@ -56,7 +57,8 @@ function getConfigPathCandidatesForEnvironment(environment: string | null | unde
 }
 
 function normalizeImportKey(location: Location): string {
-  return `${location.owner}`.trim().toLowerCase() + "/" + `${location.repo}`.trim().toLowerCase();
+  const env = normalizeEnvironmentName(location.environment ?? "") || "default";
+  return `${location.owner}`.trim().toLowerCase() + "/" + `${location.repo}`.trim().toLowerCase() + "@" + env;
 }
 
 function isHttpUrl(value: string): boolean {
@@ -88,11 +90,16 @@ function resolveManifestUrl(pluginUrl: string): string | null {
 function parseImportSpec(value: string): Location | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  const parts = trimmed.split("/");
+  const [repoSpec, envSpecRaw] = trimmed.split("@");
+  const parts = repoSpec.split("/");
   if (parts.length !== 2) return null;
   const [owner, repo] = parts;
   if (!owner || !repo) return null;
-  return { owner, repo };
+  const envSpec = envSpecRaw?.trim();
+  if (envSpec && !VALID_CONFIG_SUFFIX.test(envSpec)) {
+    return null;
+  }
+  return { owner, repo, environment: envSpec || undefined };
 }
 
 function readImports(logger: LoggerInterface, value: unknown, source: Location): Location[] {
@@ -126,6 +133,14 @@ function stripImports(config: PluginConfiguration): PluginConfiguration {
   const rest = { ...(config as PluginConfiguration) } as PluginConfiguration & { imports?: unknown };
   delete rest.imports;
   return rest as PluginConfiguration;
+}
+
+function unwrapTypeBoxError(error: unknown): unknown {
+  if (error && typeof error === "object" && "error" in error) {
+    const inner = (error as { error?: unknown }).error;
+    return inner ?? error;
+  }
+  return error;
 }
 
 function mergeImportedConfigs(imported: PluginConfiguration[], base: PluginConfiguration | null): PluginConfiguration | null {
@@ -319,8 +334,8 @@ export class ConfigurationHandler {
    * @param repository The repository name
    * @param options - Optional ref (branch, tag, or commit SHA) for the configuration lookup
    */
-  public async getConfigurationFromRepo(owner: string, repository: string, options?: { ref?: string }) {
-    const location = { owner, repo: repository };
+  public async getConfigurationFromRepo(owner: string, repository: string, options?: { ref?: string; environment?: string }) {
+    const location = { owner, repo: repository, environment: options?.environment };
     const state = this._createImportState();
     const octokit = await this._getOctokitForLocation(location, state);
     if (!octokit) {
@@ -386,6 +401,7 @@ export class ConfigurationHandler {
       owner: location.owner,
       octokit,
       ref,
+      environment: location.environment ?? this._environment,
     });
     if (!rawData) {
       this._logger.warn("No raw configuration data", { owner: location.owner, repository: location.repo });
@@ -416,7 +432,8 @@ export class ConfigurationHandler {
       return { config: stripImports(decodedConfig), errors: errors.First() ? errors : null };
     } catch (error) {
       this._logger.warn("Error decoding configuration; Will ignore.", { err: error, owner: location.owner, repository: location.repo });
-      return { config: null, errors: [error instanceof TransformDecodeCheckError ? error.error : error] as YAMLException[] };
+      const decodedError = unwrapTypeBoxError(error);
+      return { config: null, errors: [decodedError] as YAMLException[] };
     }
   }
 
@@ -472,17 +489,19 @@ export class ConfigurationHandler {
     owner,
     octokit,
     ref,
+    environment,
   }: {
     repository: string;
     owner: string;
     octokit: Context["octokit"];
     ref?: string;
+    environment?: string | null;
   }): Promise<string | null> {
     if (!repository || !owner) {
       this._logger.warn("Repo or owner is not defined, cannot download the requested file");
       return null;
     }
-    const pathList = getConfigPathCandidatesForEnvironment(this._environment);
+    const pathList = getConfigPathCandidatesForEnvironment(environment ?? this._environment);
     for (const filePath of pathList) {
       const content = await this._tryDownloadPath({ repository, owner, octokit, filePath, ref });
       if (content !== null) return content;

@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.11.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.10.0...v3.11.0) (2026-01-26)
+
+
+### Features
+
+* refresh kernel token for LLM calls ([7834843](https://github.com/ubiquity-os/plugin-sdk/commit/78348435e0e8ba8c3fe902a9b106fbc70342405c))
+
 ## [3.10.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.9.0...v3.10.0) (2026-01-24)
 
 

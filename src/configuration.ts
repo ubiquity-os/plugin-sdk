@@ -87,7 +87,7 @@ function resolveManifestUrl(pluginUrl: string): string | null {
   }
 }
 
-function parseImportSpec(value: string): Location | null {
+function parseImportSpec(value: string, defaultEnvironment?: string): Location | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   const [repoSpec, envSpecRaw] = trimmed.split("@");
@@ -99,7 +99,8 @@ function parseImportSpec(value: string): Location | null {
   if (envSpec && !VALID_CONFIG_SUFFIX.test(envSpec)) {
     return null;
   }
-  return { owner, repo, environment: envSpec || undefined };
+  const inheritedEnvironment = defaultEnvironment?.trim();
+  return { owner, repo, environment: envSpec || inheritedEnvironment || undefined };
 }
 
 function readImports(logger: LoggerInterface, value: unknown, source: Location): Location[] {
@@ -115,7 +116,7 @@ function readImports(logger: LoggerInterface, value: unknown, source: Location):
       logger.warn("Ignoring invalid import entry; expected string.", { source, entry });
       continue;
     }
-    const parsed = parseImportSpec(entry);
+    const parsed = parseImportSpec(entry, source.environment);
     if (!parsed) {
       logger.warn("Ignoring invalid import entry; expected owner/repo.", { source, entry });
       continue;
@@ -433,7 +434,7 @@ export class ConfigurationHandler {
     } catch (error) {
       this._logger.warn("Error decoding configuration; Will ignore.", { err: error, owner: location.owner, repository: location.repo });
       const decodedError = unwrapTypeBoxError(error);
-      return { config: null, errors: [decodedError] as YAMLException[] };
+      return { config: null, errors: [decodedError] as unknown[] };
     }
   }
 

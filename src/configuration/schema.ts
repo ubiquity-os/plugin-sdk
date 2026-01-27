@@ -54,7 +54,7 @@ const pluginSettingsSchema = T.Union(
     T.Null(),
     T.Object(
       {
-        with: T.Optional(T.Record(T.String(), T.Unknown(), { default: {} })),
+        with: T.Record(T.String(), T.Unknown(), { default: {} }),
         runsOn: T.Optional(runsOnSchema),
         skipBotEvents: T.Optional(T.Boolean()),
       },

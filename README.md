@@ -21,10 +21,6 @@ The `createPlugin` function enables users to create a plugin that will run on Cl
 
 The `callLlm` function sends chat completion requests to `ai.ubq.fi` using the auth token and repository context supplied by the kernel.
 
-### `callLlm`
-
-The `callLlm` function sends chat completion requests to `ai.ubq.fi` using the auth token and repository context supplied by the kernel.
-
 ### `postComment`
 
 Use `context.commentHandler.postComment` to write or update a comment on the triggering issue or pull request.
@@ -72,32 +68,6 @@ To start Jest tests, run:
 
 ```sh
 bun run jest:test
-```
-
-## LLM Utility
-
-```ts
-import { callLlm } from "@ubiquity-os/plugin-sdk";
-
-const result = await callLlm(
-  {
-    messages: [{ role: "user", content: "Summarize this issue." }],
-  },
-  context
-);
-```
-
-## LLM Utility
-
-```ts
-import { callLlm } from "@ubiquity-os/plugin-sdk";
-
-const result = await callLlm(
-  {
-    messages: [{ role: "user", content: "Summarize this issue." }],
-  },
-  context
-);
 ```
 
 ## LLM Utility

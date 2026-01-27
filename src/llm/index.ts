@@ -227,7 +227,9 @@ async function refreshKernelTokens(params: {
   const authToken = normalizeToken(payload.authToken);
   const kernelToken = normalizeToken(payload.ubiquityKernelToken);
   if (!authToken || !kernelToken) {
-    throw new Error("Kernel refresh error: response missing authToken or ubiquityKernelToken");
+    const error = new Error("Kernel refresh error: response missing authToken or ubiquityKernelToken");
+    (error as Error & { status?: number }).status = 502;
+    throw error;
   }
 
   return {

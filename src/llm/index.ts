@@ -62,7 +62,7 @@ function readKernelRefreshUrl(value: unknown): string {
 }
 
 function getKernelRefreshUrl(input: PluginInput | Context): string {
-  const direct = normalizeToken((input as Record<string, unknown>).kernelRefreshUrl);
+  const direct = readKernelRefreshUrl(input);
   if (direct) return direct;
   const fromConfig = readKernelRefreshUrl((input as { config?: unknown }).config);
   if (fromConfig) return fromConfig;

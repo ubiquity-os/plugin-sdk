@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.11.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.11.0...v3.11.1) (2026-01-28)
+
+
+### Miscellaneous Chores
+
+* release 3.11.1 ([82bc373](https://github.com/ubiquity-os/plugin-sdk/commit/82bc373ee0958456ec3c5d19d4d01be16190b19b))
+
 ## [3.11.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.10.0...v3.11.0) (2026-01-26)
 
 

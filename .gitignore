@@ -13,3 +13,4 @@ junit.xml
 cypress/screenshots
 dist
 test-dashboard.md
+.idea

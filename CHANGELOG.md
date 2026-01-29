@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.11.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.11.1...v3.11.2) (2026-01-29)
+
+
+### Bug Fixes
+
+* export config schema ([54ac560](https://github.com/ubiquity-os/plugin-sdk/commit/54ac56022c57003c366dd236a385b95d2784584f))
+* export config schema ([e50a7d0](https://github.com/ubiquity-os/plugin-sdk/commit/e50a7d07cd4aa6fc446c5396433a9542391132bd))
+
 ## [3.11.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.11.0...v3.11.1) (2026-01-28)
 
 

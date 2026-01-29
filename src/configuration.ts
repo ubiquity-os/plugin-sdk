@@ -2,12 +2,11 @@ import { Value } from "@sinclair/typebox/value";
 import YAML, { YAMLException } from "js-yaml";
 import { Buffer } from "node:buffer";
 import { configSchema, GithubPlugin, parsePluginIdentifier, PluginConfiguration, PluginSettings } from "./configuration/schema";
-
-export { configSchema };
 import { Context } from "./context";
 import { normalizeBaseUrl } from "./helpers/urls";
 import { Manifest, manifestSchema } from "./types/manifest";
 
+export { configSchema };
 export const CONFIG_PROD_FULL_PATH = ".github/.ubiquity-os.config.yml";
 export const CONFIG_DEV_FULL_PATH = ".github/.ubiquity-os.config.dev.yml";
 export const CONFIG_ORG_REPO = ".ubiquity-os";

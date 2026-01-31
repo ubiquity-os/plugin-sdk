@@ -84,6 +84,10 @@ function getStatusFromSource(source: unknown): number | null {
   const candidates: unknown[] = [maybeError.status, maybeError.statusCode, maybeError.response?.status];
   for (const candidate of candidates) {
     if (typeof candidate === "number") return candidate;
+    if (typeof candidate === "string" && candidate.trim()) {
+      const parsed = Number.parseInt(candidate, 10);
+      if (Number.isFinite(parsed)) return parsed;
+    }
   }
   return null;
 }

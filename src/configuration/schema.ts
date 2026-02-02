@@ -44,7 +44,8 @@ export function stringLiteralUnion<T extends string[]>(values: readonly [...T]):
   return T.Union(literals as never);
 }
 
-const emitterType = stringLiteralUnion(emitterEventNames);
+const customKernelEvents = ["kernel.plugin_error"] as const;
+const emitterType = stringLiteralUnion([...emitterEventNames, ...customKernelEvents] as const);
 
 const runsOnSchema = T.Array(emitterType, { default: [] });
 

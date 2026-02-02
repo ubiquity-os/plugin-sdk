@@ -1,7 +1,8 @@
 import { type Static, Type as T } from "@sinclair/typebox";
 import { emitterEventNames } from "@octokit/webhooks";
 
-export const runEvent = T.Union(emitterEventNames.map((o) => T.Literal(o)));
+const customKernelEvents = ["kernel.plugin_error"] as const;
+export const runEvent = T.Union([...emitterEventNames, ...customKernelEvents].map((o) => T.Literal(o)));
 
 export const exampleCommandExecutionSchema = T.Object({
   commandInvocation: T.String({ minLength: 1 }),

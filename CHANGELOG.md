@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.12.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.11.2...v3.12.0) (2026-02-02)
+
+
+### Features
+
+* add llm retry helper ([2b6d1cc](https://github.com/ubiquity-os/plugin-sdk/commit/2b6d1cc9bc383107a6767fbcb9459fc7e59d56db))
+
+
+### Bug Fixes
+
+* handle string HTTP status codes in retry status extraction ([29c4d32](https://github.com/ubiquity-os/plugin-sdk/commit/29c4d3241bc4832af6a06db95af2da4f4a41ba01))
+
 ## [3.11.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.11.1...v3.11.2) (2026-01-29)
 
 

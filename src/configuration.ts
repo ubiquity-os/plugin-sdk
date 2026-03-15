@@ -34,12 +34,14 @@ const ENVIRONMENT_TO_CONFIG_SUFFIX: Record<string, string> = {
 const VALID_CONFIG_SUFFIX = /^[a-z0-9][a-z0-9_-]*$/i;
 const MAX_IMPORT_DEPTH = 6;
 
+/** Normalizes an environment name to lowercase, trimmed form. Returns empty string for nullish input. */
 function normalizeEnvironmentName(environment: string | null | undefined): string {
   return String(environment ?? EMPTY_STRING)
     .trim()
     .toLowerCase();
 }
 
+/** Returns ordered config file path candidates for the given environment (production, dev, or custom suffix). */
 function getConfigPathCandidatesForEnvironment(environment: string | null | undefined): string[] {
   const normalized = normalizeEnvironmentName(environment);
   if (!normalized) {
@@ -58,11 +60,13 @@ function getConfigPathCandidatesForEnvironment(environment: string | null | unde
   return [`.github/.ubiquity-os.config.${suffix}.yml`, CONFIG_PROD_FULL_PATH];
 }
 
+/** Builds a deduplication key from a location's owner, repo, and environment. */
 function normalizeImportKey(location: Location): string {
   const env = normalizeEnvironmentName(location.environment ?? "") || "default";
   return `${location.owner}`.trim().toLowerCase() + "/" + `${location.repo}`.trim().toLowerCase() + "@" + env;
 }
 
+/** Returns true if the value starts with http:// or https://. */
 function isHttpUrl(value: string): boolean {
   const trimmed = value.trim();
   return trimmed.startsWith("http://") || trimmed.startsWith("https://");
@@ -95,6 +99,7 @@ export function buildManifestRefCandidates(ref: string | undefined): (string | u
   return [`${ARTIFACT_REF_PREFIX}${normalized}`, normalized];
 }
 
+/** Resolves a plugin URL to its manifest.json URL, appending the filename if not already present. */
 function resolveManifestUrl(pluginUrl: string): string | null {
   try {
     const parsed = new URL(pluginUrl.trim());
@@ -116,6 +121,7 @@ function resolveManifestUrl(pluginUrl: string): string | null {
   }
 }
 
+/** Parses an import spec string ("owner/repo" or "owner/repo@env") into a Location, or null if invalid. */
 function parseImportSpec(value: string, defaultEnvironment?: string): Location | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -132,6 +138,7 @@ function parseImportSpec(value: string, defaultEnvironment?: string): Location |
   return { owner, repo, environment: envSpec || inheritedEnvironment || undefined };
 }
 
+/** Reads and validates the imports array from a config, deduplicating by normalized key. */
 function readImports(logger: LoggerInterface, value: unknown, source: Location): Location[] {
   if (!value) return [];
   if (!Array.isArray(value)) {
@@ -158,6 +165,7 @@ function readImports(logger: LoggerInterface, value: unknown, source: Location):
   return imports;
 }
 
+/** Returns a shallow copy of the config with the imports key removed. */
 function stripImports(config: PluginConfiguration): PluginConfiguration {
   if (!config || typeof config !== "object") return config;
   const rest = { ...(config as PluginConfiguration) } as PluginConfiguration & { imports?: unknown };
@@ -165,6 +173,7 @@ function stripImports(config: PluginConfiguration): PluginConfiguration {
   return rest as PluginConfiguration;
 }
 
+/** Unwraps a TypeBox validation error to its inner error if present. */
 function unwrapTypeBoxError(error: unknown): unknown {
   if (error && typeof error === "object" && "error" in error) {
     const inner = (error as { error?: unknown }).error;
@@ -173,6 +182,7 @@ function unwrapTypeBoxError(error: unknown): unknown {
   return error;
 }
 
+/** Deep-merges imported configs (left-to-right), then overlays the base config's plugins on top. */
 function mergeImportedConfigs(imported: PluginConfiguration[], base: PluginConfiguration | null): PluginConfiguration | null {
   if (!imported.length) {
     return base;
@@ -202,6 +212,7 @@ export interface LoggerInterface {
   warn(message: string, metadata?: Record<string, unknown>): void;
 }
 
+/** Calls logger.ok if available, otherwise falls back to logger.info. */
 function logOk(logger: LoggerInterface, message: string, metadata?: Record<string, unknown>) {
   if (logger.ok) {
     logger.ok(message, metadata);

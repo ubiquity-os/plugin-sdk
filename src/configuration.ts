@@ -10,6 +10,7 @@ export { configSchema };
 export const CONFIG_PROD_FULL_PATH = ".github/.ubiquity-os.config.yml";
 export const CONFIG_DEV_FULL_PATH = ".github/.ubiquity-os.config.dev.yml";
 export const CONFIG_ORG_REPO = ".ubiquity-os";
+export const ARTIFACT_REF_PREFIX = "dist/";
 // eslint-disable-next-line @ubiquity-os/no-empty-strings
 const EMPTY_STRING = "";
 
@@ -65,6 +66,33 @@ function normalizeImportKey(location: Location): string {
 function isHttpUrl(value: string): boolean {
   const trimmed = value.trim();
   return trimmed.startsWith("http://") || trimmed.startsWith("https://");
+}
+
+/**
+ * Builds an ordered list of ref candidates for manifest resolution.
+ * Artifact branches (`dist/<ref>`) are tried first, with the source
+ * ref as a migration fallback.  If the ref already starts with `dist/`,
+ * it is used as-is to avoid `dist/dist/...` recursion.
+ */
+export function buildManifestRefCandidates(ref: string | undefined): (string | undefined)[] {
+  if (!ref) {
+    return [undefined];
+  }
+
+  const normalized = String(ref)
+    .trim()
+    .replace(/^refs\/heads\//, "")
+    .replace(/^refs\/tags\//, "");
+
+  if (!normalized) {
+    return [undefined];
+  }
+
+  if (normalized.startsWith(ARTIFACT_REF_PREFIX)) {
+    return [normalized];
+  }
+
+  return [`${ARTIFACT_REF_PREFIX}${normalized}`, normalized];
 }
 
 function resolveManifestUrl(pluginUrl: string): string | null {
@@ -661,23 +689,33 @@ export class ConfigurationHandler {
       return this._manifestPromiseCache[manifestKey];
     }
     const manifestPromise = (async () => {
-      try {
-        const { data } = await this._octokit.rest.repos.getContent({
-          owner,
-          repo,
-          path: "manifest.json",
-          ref,
-        });
-        if ("content" in data) {
-          const content = Buffer.from(data.content, "base64").toString();
-          const contentParsed = JSON.parse(content);
-          const manifest = this._decodeManifest(contentParsed);
-          this._manifestCache[manifestKey] = manifest;
-          return manifest;
+      const refCandidates = buildManifestRefCandidates(ref);
+      for (const refCandidate of refCandidates) {
+        try {
+          const { data } = await this._octokit.rest.repos.getContent({
+            owner,
+            repo,
+            path: "manifest.json",
+            ref: refCandidate,
+          });
+          if ("content" in data) {
+            const content = Buffer.from(data.content, "base64").toString();
+            const contentParsed = JSON.parse(content);
+            const manifest = this._decodeManifest(contentParsed);
+            this._manifestCache[manifestKey] = manifest;
+            return manifest;
+          }
+        } catch (e) {
+          const status = e && typeof e === "object" && "status" in e ? Number((e as { status?: number }).status) : null;
+          if (status === 404) {
+            this._logger.debug("Manifest not found for ref candidate, trying next", { owner, repo, ref: refCandidate });
+            continue;
+          }
+          this._logger.warn("Could not find a valid manifest", { owner, repo, ref: refCandidate, err: e });
+          return null;
         }
-      } catch (e) {
-        this._logger.warn("Could not find a valid manifest", { owner, repo, err: e });
       }
+      this._logger.warn("Could not find a valid manifest on any ref candidate", { owner, repo, refCandidates });
       return null;
     })();
     this._manifestPromiseCache[manifestKey] = manifestPromise;

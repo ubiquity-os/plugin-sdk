@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { Value } from "@sinclair/typebox/value";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { CONFIG_PROD_FULL_PATH, ConfigurationHandler, LoggerInterface } from "../src/configuration";
+import { ARTIFACT_REF_PREFIX, buildManifestRefCandidates, CONFIG_PROD_FULL_PATH, ConfigurationHandler, LoggerInterface } from "../src/configuration";
 import { configSchema, parsePluginIdentifier, PluginConfiguration } from "../src/configuration/schema";
 import { Context } from "../src/context";
 import { Manifest } from "../src/types/manifest";
@@ -381,5 +381,154 @@ plugins:
 
     const byShortName = await handler.getSelfConfiguration<{ mode: string }>({ short_name: "ubiquity-os/example-plugin@1.0.0" });
     expect(byShortName).toEqual({ mode: "github" });
+  });
+});
+
+describe("buildManifestRefCandidates", () => {
+  it("returns [undefined] when ref is undefined", () => {
+    expect(buildManifestRefCandidates(undefined)).toEqual([undefined]);
+  });
+
+  it("returns [undefined] when ref is empty string", () => {
+    expect(buildManifestRefCandidates("")).toEqual([undefined]);
+  });
+
+  it("prepends dist/ prefix and includes source ref as fallback", () => {
+    expect(buildManifestRefCandidates("main")).toEqual(["dist/main", "main"]);
+  });
+
+  it("maps feature branches to dist/ prefix with fallback", () => {
+    expect(buildManifestRefCandidates("feat/my-feature")).toEqual(["dist/feat/my-feature", "feat/my-feature"]);
+  });
+
+  it("does not double-prefix refs already starting with dist/", () => {
+    expect(buildManifestRefCandidates("dist/main")).toEqual(["dist/main"]);
+    expect(buildManifestRefCandidates("dist/feat/example")).toEqual(["dist/feat/example"]);
+  });
+
+  it("strips refs/heads/ prefix before mapping", () => {
+    expect(buildManifestRefCandidates("refs/heads/develop")).toEqual(["dist/develop", "develop"]);
+  });
+
+  it("strips refs/tags/ prefix before mapping", () => {
+    expect(buildManifestRefCandidates("refs/tags/v1.0.0")).toEqual(["dist/v1.0.0", "v1.0.0"]);
+  });
+
+  it("exports the artifact ref prefix constant", () => {
+    expect(ARTIFACT_REF_PREFIX).toBe("dist/");
+  });
+});
+
+describe("ConfigurationHandler artifact branch manifest resolution", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("resolves manifest from dist/ artifact branch when source ref manifest is absent", async () => {
+    const owner = "acme";
+    const repo = "demo";
+    const pluginOwner = "ubiquity-os";
+    const pluginRepo = "example-plugin";
+    const pluginRef = "development";
+    const artifactManifest: Manifest = {
+      name: "Example",
+      short_name: `${pluginOwner}/${pluginRepo}@${pluginRef}`,
+      "ubiquity:listeners": ["issues.opened"],
+      skipBotEvents: false,
+    } as Manifest;
+
+    const repoYaml = `plugins:
+  "${pluginOwner}/${pluginRepo}@${pluginRef}":
+    with:
+      level: 1
+`;
+    const configFiles: ConfigFileMap = {
+      [`${owner}:${repo}:${CONFIG_PROD_FULL_PATH}`]: repoYaml,
+    };
+
+    const octokit = {
+      rest: {
+        repos: {
+          getContent: async ({ owner: reqOwner, repo: reqRepo, path, ref }: GetContentParams) => {
+            if (path === "manifest.json") {
+              if (ref === `dist/${pluginRef}`) {
+                const content = Buffer.from(JSON.stringify(artifactManifest)).toString("base64");
+                return { data: { content } };
+              }
+              const err = new Error("Not Found") as Error & { status: number };
+              err.status = 404;
+              throw err;
+            }
+            const key = `${reqOwner}:${reqRepo}:${path}`;
+            if (!(key in configFiles)) {
+              const err = new Error("Not Found") as Error & { status: number };
+              err.status = 404;
+              throw err;
+            }
+            return { data: configFiles[key], headers: { "x-ratelimit-remaining": "1000" } };
+          },
+        },
+      },
+    } as unknown as Context["octokit"];
+
+    const handler = new ConfigurationHandler(new TestLogger(), octokit);
+    const config = await handler.getConfiguration({ owner, repo });
+
+    expect(config.plugins[`${pluginOwner}/${pluginRepo}@${pluginRef}`]?.runsOn).toEqual(["issues.opened"]);
+    expect(config.plugins[`${pluginOwner}/${pluginRepo}@${pluginRef}`]?.skipBotEvents).toBe(false);
+  });
+
+  it("falls back to source ref when artifact branch does not exist", async () => {
+    const owner = "acme";
+    const repo = "demo";
+    const pluginOwner = "ubiquity-os";
+    const pluginRepo = "legacy-plugin";
+    const pluginRef = "main";
+    const sourceManifest: Manifest = {
+      name: "Legacy",
+      short_name: `${pluginOwner}/${pluginRepo}@${pluginRef}`,
+      "ubiquity:listeners": ["pull_request.opened"],
+      skipBotEvents: true,
+    } as Manifest;
+
+    const repoYaml = `plugins:
+  "${pluginOwner}/${pluginRepo}@${pluginRef}":
+    with:
+      enabled: true
+`;
+    const configFiles: ConfigFileMap = {
+      [`${owner}:${repo}:${CONFIG_PROD_FULL_PATH}`]: repoYaml,
+    };
+
+    const octokit = {
+      rest: {
+        repos: {
+          getContent: async ({ owner: reqOwner, repo: reqRepo, path, ref }: GetContentParams) => {
+            if (path === "manifest.json") {
+              if (ref === pluginRef) {
+                const content = Buffer.from(JSON.stringify(sourceManifest)).toString("base64");
+                return { data: { content } };
+              }
+              const err = new Error("Not Found") as Error & { status: number };
+              err.status = 404;
+              throw err;
+            }
+            const key = `${reqOwner}:${reqRepo}:${path}`;
+            if (!(key in configFiles)) {
+              const err = new Error("Not Found") as Error & { status: number };
+              err.status = 404;
+              throw err;
+            }
+            return { data: configFiles[key], headers: { "x-ratelimit-remaining": "1000" } };
+          },
+        },
+      },
+    } as unknown as Context["octokit"];
+
+    const handler = new ConfigurationHandler(new TestLogger(), octokit);
+    const config = await handler.getConfiguration({ owner, repo });
+
+    expect(config.plugins[`${pluginOwner}/${pluginRepo}@${pluginRef}`]?.runsOn).toEqual(["pull_request.opened"]);
+    expect(config.plugins[`${pluginOwner}/${pluginRepo}@${pluginRef}`]?.skipBotEvents).toBe(true);
   });
 });

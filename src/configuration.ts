@@ -74,6 +74,9 @@ function resolveManifestUrl(pluginUrl: string): string | null {
     while (pathname.endsWith("/") && pathname.length > 1) {
       pathname = pathname.slice(0, -1);
     }
+    if (pathname === "/") {
+      pathname = EMPTY_STRING;
+    }
     if (pathname.endsWith(".json")) {
       parsed.search = EMPTY_STRING;
       parsed.hash = EMPTY_STRING;
@@ -591,10 +594,15 @@ export class ConfigurationHandler {
   }
 
   private async _fetchWorkerManifest(url: string): Promise<Manifest | null> {
-    if (this._manifestCache[url]) {
-      return this._manifestCache[url];
+    const manifestUrl = resolveManifestUrl(url);
+    if (!manifestUrl) {
+      this._logger.warn("Invalid plugin URL; cannot fetch manifest", { pluginUrl: url });
+      return null;
     }
-    const manifestUrl = `${url}/manifest.json`;
+    const manifestKey = `url:${manifestUrl}`;
+    if (this._manifestCache[manifestKey]) {
+      return this._manifestCache[manifestKey];
+    }
     try {
       const result = await fetch(manifestUrl);
       if (!result.ok) {
@@ -603,7 +611,7 @@ export class ConfigurationHandler {
       }
       const jsonData = await result.json();
       const manifest = this._decodeManifest(jsonData);
-      this._manifestCache[url] = manifest;
+      this._manifestCache[manifestKey] = manifest;
       return manifest;
     } catch (e) {
       this._logger.error("Could not find a manifest for Worker", { manifestUrl, err: e });
@@ -676,7 +684,7 @@ export class ConfigurationHandler {
           return manifest;
         }
       } catch (e) {
-        this._logger.warn("Could not find a valid manifest", { owner, repo, err: e });
+        this._logger.warn(`Could not find a valid manifest for ${owner}/${repo}`, { owner, repo, err: e });
       }
       return null;
     })();

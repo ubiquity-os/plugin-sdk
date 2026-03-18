@@ -424,7 +424,7 @@ export class ConfigurationHandler {
   }
 
   private _decodeConfiguration(location: Location, config: PluginConfiguration) {
-    this._logger.info("Decoding configuration", { owner: location.owner, repository: location.repo });
+    this._logger.debug("Decoding configuration", { owner: location.owner, repository: location.repo });
     try {
       const configSchemaWithDefaults = Value.Default(configSchema, config) as Readonly<unknown>;
       const errors = Value.Errors(configSchema, configSchemaWithDefaults);
@@ -536,7 +536,7 @@ export class ConfigurationHandler {
         ...(ref ? { ref } : {}),
         mediaType: { format: "raw" },
       });
-      logOk(this._logger, "Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"] });
+      this._logger.debug("Configuration file found", { owner, repository, filePath, rateLimitRemaining: headers?.["x-ratelimit-remaining"] });
       return data as unknown as string; // this will be a string if media format is raw
     } catch (err) {
       this._handleDownloadError(err, { owner, repository, filePath });
@@ -562,11 +562,11 @@ export class ConfigurationHandler {
    * Parse the raw YAML content and returns the loaded YAML, or errors if any.
    */
   public parseYaml(data: null | string) {
-    this._logger.info("Will attempt to parse YAML data");
+    this._logger.debug("Will attempt to parse YAML data");
     try {
       if (data) {
         const parsedData = YAML.load(data);
-        logOk(this._logger, "Parsed yaml data successfully");
+        this._logger.debug("Parsed yaml data successfully");
         return { yaml: parsedData ?? null, errors: null };
       }
     } catch (error) {

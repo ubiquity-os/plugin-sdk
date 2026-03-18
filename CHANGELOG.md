@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.12.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.12.1...v3.12.2) (2026-03-18)
+
+
+### Bug Fixes
+
+* lower configuration parse log verbosity ([1df2ad4](https://github.com/ubiquity-os/plugin-sdk/commit/1df2ad427cde69facd54be26519aef96bbb7da4e))
+* lower configuration parse log verbosity ([b653fa5](https://github.com/ubiquity-os/plugin-sdk/commit/b653fa56a0e16f799c0c3c5399d8fe18f9e63c22))
+
 ## [3.12.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.12.0...v3.12.1) (2026-03-18)
 
 

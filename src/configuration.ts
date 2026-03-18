@@ -684,7 +684,7 @@ export class ConfigurationHandler {
           return manifest;
         }
       } catch (e) {
-        this._logger.warn(`Could not find a valid manifest for ${owner}/${repo}`, { owner, repo, err: e });
+        this._logger.warn(`Could not find a valid manifest for ${owner}/${repo}${ref ? "@" + ref : ""}`, { owner, repo, ref, err: e });
       }
       return null;
     })();

@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.12.1](https://github.com/ubiquity-os/plugin-sdk/compare/v3.12.0...v3.12.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* normalize root URL manifest lookups ([d611e7f](https://github.com/ubiquity-os/plugin-sdk/commit/d611e7fb0f0d3ab2ae7a8c551f3aac4b96415413))
+
 ## [3.12.0](https://github.com/ubiquity-os/plugin-sdk/compare/v3.11.2...v3.12.0) (2026-02-02)
 
 

@@ -137,6 +137,41 @@ describe("ConfigurationHandler", () => {
     expect(fetchMock).toHaveBeenCalledWith("https://example.com/plugin/manifest.json");
   });
 
+  it("loads root URL plugin manifests from the endpoint when the plugin URL has a trailing slash", async () => {
+    const owner = "acme";
+    const repo = "demo";
+    const urlPlugin = "https://example.com/";
+    const manifest: Manifest = {
+      name: "Example Plugin",
+      short_name: "example/plugin@1.0.0",
+      description: "Example plugin manifest",
+      commands: {},
+      "ubiquity:listeners": ["issues.opened"],
+      skipBotEvents: false,
+    };
+    const repoYaml = `plugins:
+  "${urlPlugin}":
+    with:
+      level: 1
+`;
+    const configFiles: ConfigFileMap = {
+      [`${owner}:${repo}:${CONFIG_PROD_FULL_PATH}`]: repoYaml,
+    };
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(manifest), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub(configFiles, {}));
+    const config = await handler.getConfiguration({ owner, repo });
+
+    expect(config.plugins[urlPlugin]?.with).toEqual({ level: 1 });
+    expect(config.plugins[urlPlugin]?.runsOn).toEqual(["issues.opened"]);
+    expect(config.plugins[urlPlugin]?.skipBotEvents).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith("https://example.com/manifest.json");
+  });
+
   it("merges organization and repository configs while enriching plugins with manifest defaults", async () => {
     const owner = "acme";
     const repo = "demo";
@@ -326,6 +361,27 @@ plugins:
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
+  });
+
+  it("fetches and decodes worker manifests from a trailing-slash root URL", async () => {
+    const expectedManifest: Manifest = {
+      name: "Worker Plugin",
+      short_name: "acme/worker-plugin@1.0.0",
+      "ubiquity:listeners": ["issues.opened"],
+      skipBotEvents: true,
+    } as Manifest;
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(expectedManifest), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    const handler = new ConfigurationHandler(new TestLogger(), createOctokitStub({}, {}));
+
+    const manifest = await handler.getManifest("https://example.com/");
+
+    expect(manifest).toEqual(expect.objectContaining({ name: "Worker Plugin", short_name: "acme/worker-plugin@1.0.0" }));
+    expect(fetchMock).toHaveBeenCalledWith("https://example.com/manifest.json");
   });
 
   it("returns null when worker manifest fetch fails", async () => {

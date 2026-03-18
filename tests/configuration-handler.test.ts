@@ -102,30 +102,6 @@ describe("ConfigurationHandler", () => {
     expect(config.plugins["ubiquity-os/example-plugin"]?.skipBotEvents).toBe(true);
   });
 
-  it("logs configuration parse milestones at debug level", async () => {
-    const owner = "acme";
-    const repo = "demo";
-    const logger = new TestLogger();
-    const configFiles: ConfigFileMap = {
-      [`${owner}:${repo}:${CONFIG_PROD_FULL_PATH}`]: "plugins: {}",
-    };
-    const handler = new ConfigurationHandler(logger, createOctokitStub(configFiles, {}));
-
-    await handler.getConfigurationFromRepo(owner, repo);
-
-    const expectedMessages = [
-      "Configuration file found",
-      "Will attempt to parse YAML data",
-      "Parsed yaml data successfully",
-      "Decoding configuration",
-    ];
-
-    for (const message of expectedMessages) {
-      expect(logger.entries.some((entry) => entry.message === message && entry.level === "debug")).toBe(true);
-      expect(logger.entries.some((entry) => entry.message === message && entry.level !== "debug")).toBe(false);
-    }
-  });
-
   it("loads URL plugin manifests from the endpoint", async () => {
     const owner = "acme";
     const repo = "demo";

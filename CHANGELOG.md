@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.12.3](https://github.com/ubiquity-os/plugin-sdk/compare/v3.12.2...v3.12.3) (2026-03-31)
+
+
+### Bug Fixes
+
+* derive manifest metadata from Deno runtime ([0787e10](https://github.com/ubiquity-os/plugin-sdk/commit/0787e103bd4b4b7b0679981317289b502454aa21))
+* handle relative runtime manifest urls ([67fd72e](https://github.com/ubiquity-os/plugin-sdk/commit/67fd72e782e0eb7bc1b99642e0d4c6fa59176556))
+
 ## [3.12.2](https://github.com/ubiquity-os/plugin-sdk/compare/v3.12.1...v3.12.2) (2026-03-18)
 
 

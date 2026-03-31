@@ -5,6 +5,7 @@ import { http, HttpResponse } from "msw";
 import { KERNEL_PUBLIC_KEY } from "../src/constants";
 import { compressString } from "../src/helpers/compression";
 import { checkLlmRetryableState, retry } from "../src/helpers/retry";
+import { resolveRuntimeManifest } from "../src/helpers/runtime-manifest";
 import { signPayload, verifySignature } from "../src/signature";
 import type { Context } from "../src/context";
 import type { CommandCall } from "../src/types/command";
@@ -154,6 +155,14 @@ describe("SDK worker tests", () => {
       name: "test",
       short_name: "ubq/test@abc123",
       homepage_url: "https://worker.example.com",
+    });
+  });
+  it("Should keep serving manifest for relative manifest requests when runtime timeline is set", async () => {
+    process.env.DENO_TIMELINE = "git-branch/development";
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" }, "/manifest.json");
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@development",
     });
   });
   it("Should deny POST request with different path", async () => {

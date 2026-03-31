@@ -61,9 +61,16 @@ export function resolveRuntimeManifest(manifest: Manifest, requestUrl: string): 
     return manifest;
   }
 
+  let homepageUrl: string | undefined;
+  try {
+    homepageUrl = new URL(requestUrl).origin;
+  } catch {
+    homepageUrl = undefined;
+  }
+
   return {
     ...manifest,
     short_name: overrideShortName(manifest.short_name, refName),
-    homepage_url: new URL(requestUrl).origin,
+    ...(homepageUrl ? { homepage_url: homepageUrl } : {}),
   };
 }

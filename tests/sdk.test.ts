@@ -39,6 +39,10 @@ function clearGithubContext() {
   delete (globalThis as { __UOS_GITHUB_CONTEXT__?: Record<string, unknown> })[githubContextKey];
 }
 
+function clearRuntimeTimeline() {
+  delete process.env.DENO_TIMELINE;
+}
+
 async function getInputs(
   stateId: string,
   eventName: string,
@@ -92,6 +96,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   clearGithubContext();
+  clearRuntimeTimeline();
   server.resetHandlers();
   jest.resetModules();
   jest.restoreAllMocks();
@@ -108,6 +113,48 @@ describe("SDK worker tests", () => {
     expect(res.status).toEqual(200);
     const result = await res.json();
     expect(result).toEqual({ name: "test", short_name: "ubq/test@dev" });
+  });
+  it("Should serve runtime-adjusted manifest for production timeline", async () => {
+    process.env.DENO_TIMELINE = "production";
+    const app = await createTestApp();
+    const res = await app.request("https://worker.example.com/manifest.json", {
+      method: "GET",
+    });
+    expect(res.status).toEqual(200);
+    const result = await res.json();
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@main",
+      homepage_url: "https://worker.example.com",
+    });
+  });
+  it("Should serve runtime-adjusted manifest for git branch timeline", async () => {
+    process.env.DENO_TIMELINE = "git-branch/development";
+    const app = await createTestApp();
+    const res = await app.request("https://worker.example.com/manifest.json", {
+      method: "GET",
+    });
+    expect(res.status).toEqual(200);
+    const result = await res.json();
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@development",
+      homepage_url: "https://worker.example.com",
+    });
+  });
+  it("Should serve runtime-adjusted manifest for preview timeline", async () => {
+    process.env.DENO_TIMELINE = "preview/abc123";
+    const app = await createTestApp();
+    const res = await app.request("https://worker.example.com/manifest.json", {
+      method: "GET",
+    });
+    expect(res.status).toEqual(200);
+    const result = await res.json();
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@abc123",
+      homepage_url: "https://worker.example.com",
+    });
   });
   it("Should deny POST request with different path", async () => {
     const app = await createTestApp();

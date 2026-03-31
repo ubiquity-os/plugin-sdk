@@ -5,6 +5,7 @@ import { http, HttpResponse } from "msw";
 import { KERNEL_PUBLIC_KEY } from "../src/constants";
 import { compressString } from "../src/helpers/compression";
 import { checkLlmRetryableState, retry } from "../src/helpers/retry";
+import { resolveRuntimeManifest } from "../src/helpers/runtime-manifest";
 import { signPayload, verifySignature } from "../src/signature";
 import type { Context } from "../src/context";
 import type { CommandCall } from "../src/types/command";
@@ -37,6 +38,10 @@ function setGithubContext(context: Record<string, unknown>) {
 
 function clearGithubContext() {
   delete (globalThis as { __UOS_GITHUB_CONTEXT__?: Record<string, unknown> })[githubContextKey];
+}
+
+function clearRuntimeTimeline() {
+  delete process.env.DENO_TIMELINE;
 }
 
 async function getInputs(
@@ -92,6 +97,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   clearGithubContext();
+  clearRuntimeTimeline();
   server.resetHandlers();
   jest.resetModules();
   jest.restoreAllMocks();
@@ -108,6 +114,56 @@ describe("SDK worker tests", () => {
     expect(res.status).toEqual(200);
     const result = await res.json();
     expect(result).toEqual({ name: "test", short_name: "ubq/test@dev" });
+  });
+  it("Should serve runtime-adjusted manifest for production timeline", async () => {
+    process.env.DENO_TIMELINE = "production";
+    const app = await createTestApp();
+    const res = await app.request("https://worker.example.com/manifest.json", {
+      method: "GET",
+    });
+    expect(res.status).toEqual(200);
+    const result = await res.json();
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@main",
+      homepage_url: "https://worker.example.com",
+    });
+  });
+  it("Should serve runtime-adjusted manifest for git branch timeline", async () => {
+    process.env.DENO_TIMELINE = "git-branch/development";
+    const app = await createTestApp();
+    const res = await app.request("https://worker.example.com/manifest.json", {
+      method: "GET",
+    });
+    expect(res.status).toEqual(200);
+    const result = await res.json();
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@development",
+      homepage_url: "https://worker.example.com",
+    });
+  });
+  it("Should serve runtime-adjusted manifest for preview timeline", async () => {
+    process.env.DENO_TIMELINE = "preview/abc123";
+    const app = await createTestApp();
+    const res = await app.request("https://worker.example.com/manifest.json", {
+      method: "GET",
+    });
+    expect(res.status).toEqual(200);
+    const result = await res.json();
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@abc123",
+      homepage_url: "https://worker.example.com",
+    });
+  });
+  it("Should keep serving manifest for relative manifest requests when runtime timeline is set", async () => {
+    process.env.DENO_TIMELINE = "git-branch/development";
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" }, "/manifest.json");
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@development",
+    });
   });
   it("Should deny POST request with different path", async () => {
     const app = await createTestApp();

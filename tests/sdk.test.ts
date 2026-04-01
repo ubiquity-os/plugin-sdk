@@ -31,6 +31,8 @@ const issueCommentedEvent = {
 };
 
 const githubContextKey = "__UOS_GITHUB_CONTEXT__";
+const fullWorkflowBranchName = "issue-17-deno-deploy-workflow";
+const denoWorkflowBranchSlug = fullWorkflowBranchName.slice(0, 26);
 
 function setGithubContext(context: Record<string, unknown>) {
   (globalThis as { __UOS_GITHUB_CONTEXT__?: Record<string, unknown> })[githubContextKey] = context;
@@ -146,8 +148,8 @@ describe("SDK worker tests", () => {
     });
   });
   it("Should prefer the full runtime ref when it normalizes to the Deno branch slug", async () => {
-    process.env.DENO_TIMELINE = "git-branch/issue-17-deno-deploy-workf";
-    process.env.REF_NAME = "issue-17-deno-deploy-workflow";
+    process.env.DENO_TIMELINE = `git-branch/${denoWorkflowBranchSlug}`;
+    process.env.REF_NAME = fullWorkflowBranchName;
     const app = await createTestApp();
     const res = await app.request("https://worker.example.com/manifest.json", {
       method: "GET",
@@ -156,7 +158,7 @@ describe("SDK worker tests", () => {
     const result = await res.json();
     expect(result).toEqual({
       name: "test",
-      short_name: "ubq/test@issue-17-deno-deploy-workflow",
+      short_name: `ubq/test@${fullWorkflowBranchName}`,
       homepage_url: "https://worker.example.com",
     });
   });

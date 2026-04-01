@@ -172,6 +172,17 @@ describe("SDK worker tests", () => {
       homepage_url: "https://worker.example.com",
     });
   });
+  it("Should fall back to PLUGIN_MANIFEST_REF_NAME when REF_NAME does not match the Deno branch slug", () => {
+    process.env.DENO_TIMELINE = `git-branch/${denoWorkflowBranchSlug}`;
+    process.env.REF_NAME = "development";
+    process.env.PLUGIN_MANIFEST_REF_NAME = fullWorkflowBranchName;
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" }, "https://worker.example.com/manifest.json");
+    expect(result).toEqual({
+      name: "test",
+      short_name: `ubq/test@${fullWorkflowBranchName}`,
+      homepage_url: "https://worker.example.com",
+    });
+  });
   it("Should serve runtime-adjusted manifest for preview timeline", async () => {
     process.env.DENO_TIMELINE = "preview/abc123";
     const app = await createTestApp();

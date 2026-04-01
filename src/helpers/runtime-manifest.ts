@@ -25,8 +25,8 @@ function readRuntimeTimeline() {
   return readRuntimeEnv("DENO_TIMELINE");
 }
 
-function readRuntimeRefName() {
-  return readRuntimeEnv("REF_NAME") || readRuntimeEnv("PLUGIN_MANIFEST_REF_NAME");
+function readRuntimeRefNames() {
+  return [readRuntimeEnv("REF_NAME"), readRuntimeEnv("PLUGIN_MANIFEST_REF_NAME")].filter(Boolean);
 }
 
 function isAlphaNumeric(char: string) {
@@ -59,12 +59,13 @@ function resolveGitBranchRefName(branchSlug: string) {
     return EMPTY_VALUE;
   }
 
-  const runtimeRefName = readRuntimeRefName();
-  if (!runtimeRefName) {
-    return branchSlug;
+  for (const runtimeRefName of readRuntimeRefNames()) {
+    if (normalizeRuntimeBranchSlug(runtimeRefName) === branchSlug) {
+      return runtimeRefName;
+    }
   }
 
-  return normalizeRuntimeBranchSlug(runtimeRefName) === branchSlug ? runtimeRefName : branchSlug;
+  return branchSlug;
 }
 
 function resolveRuntimeRefName(timeline: string) {

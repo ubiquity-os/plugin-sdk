@@ -42,6 +42,8 @@ function clearGithubContext() {
 
 function clearRuntimeTimeline() {
   delete process.env.DENO_TIMELINE;
+  delete process.env.REF_NAME;
+  delete process.env.PLUGIN_MANIFEST_REF_NAME;
 }
 
 async function getInputs(
@@ -140,6 +142,31 @@ describe("SDK worker tests", () => {
     expect(result).toEqual({
       name: "test",
       short_name: "ubq/test@development",
+      homepage_url: "https://worker.example.com",
+    });
+  });
+  it("Should prefer the full runtime ref when it normalizes to the Deno branch slug", async () => {
+    process.env.DENO_TIMELINE = "git-branch/issue-17-deno-deploy-workf";
+    process.env.REF_NAME = "issue-17-deno-deploy-workflow";
+    const app = await createTestApp();
+    const res = await app.request("https://worker.example.com/manifest.json", {
+      method: "GET",
+    });
+    expect(res.status).toEqual(200);
+    const result = await res.json();
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@issue-17-deno-deploy-workflow",
+      homepage_url: "https://worker.example.com",
+    });
+  });
+  it("Should ignore REF_NAME when it does not normalize to the Deno branch slug", () => {
+    process.env.DENO_TIMELINE = "git-branch/dev";
+    process.env.REF_NAME = "development";
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" }, "https://worker.example.com/manifest.json");
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@dev",
       homepage_url: "https://worker.example.com",
     });
   });

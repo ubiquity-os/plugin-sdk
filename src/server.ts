@@ -17,6 +17,34 @@ import { Manifest } from "./types/manifest";
 import { HandlerReturn } from "./types/sdk";
 import { getPluginOptions, Options } from "./util";
 
+type EventHandler<TConfig, TEnv, TCommand, TSupportedEvents extends WebhookEventName> = (
+  context: Context<TConfig, TEnv, TCommand, TSupportedEvents>
+) => HandlerReturn;
+
+/**
+ * Registry for event-based handlers registered via .on().
+ * Auto-generates ubiquity:listeners from registered handlers.
+ */
+class EventHandlerRegistry<TConfig, TEnv, TCommand, TSupportedEvents extends WebhookEventName> {
+  private _handlers: Map<TSupportedEvents, EventHandler<TConfig, TEnv, TCommand, TSupportedEvents>> = new Map();
+
+  on<TEvent extends TSupportedEvents>(
+    event: TEvent,
+    handler: EventHandler<TConfig, TEnv, TCommand, TEvent>
+  ): EventHandlerRegistry<TConfig, TEnv, TCommand, TSupportedEvents> {
+    this._handlers.set(event as TSupportedEvents, handler as EventHandler<TConfig, TEnv, TCommand, TSupportedEvents>);
+    return this;
+  }
+
+  getHandler(eventName: string): EventHandler<TConfig, TEnv, TCommand, TSupportedEvents> | undefined {
+    return this._handlers.get(eventName as TSupportedEvents);
+  }
+
+  getListenerEvents(): TSupportedEvents[] {
+    return Array.from(this._handlers.keys());
+  }
+}
+
 async function handleError(context: Context, pluginOptions: Options, error: unknown) {
   console.error(error);
 
@@ -33,13 +61,23 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
   handler: (context: Context<TConfig, TEnv, TCommand, TSupportedEvents>) => HandlerReturn,
   manifest: Manifest,
   options?: Options
-) {
+): Hono & EventHandlerRegistry<TConfig, TEnv, TCommand, TSupportedEvents> {
   const pluginOptions = getPluginOptions(options);
+  const registry = new EventHandlerRegistry<TConfig, TEnv, TCommand, TSupportedEvents>();
 
   const app = new Hono();
 
+  // Merge manifest listeners with registry listeners
+  const manifestListeners: TSupportedEvents[] = (manifest["ubiquity:listeners"] as TSupportedEvents[]) ?? [];
+
   app.get("/manifest.json", (ctx) => {
-    return ctx.json(resolveRuntimeManifest(manifest, ctx.req.url));
+    const registryListeners = registry.getListenerEvents() as TSupportedEvents[];
+    const allListeners = [...new Set([...manifestListeners, ...registryListeners])];
+    const mergedManifest: Manifest = {
+      ...manifest,
+      "ubiquity:listeners": allListeners.length > 0 ? allListeners : undefined,
+    };
+    return ctx.json(resolveRuntimeManifest(mergedManifest, ctx.req.url));
   });
 
   app.post("/", async function appPost(ctx) {
@@ -102,13 +140,22 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
       commentHandler: new CommentHandler(),
     };
 
+    // Check if there's a registered .on() handler for this event
+    const registeredHandler = registry.getHandler(inputs.eventName);
+    const activeHandler = registeredHandler ?? handler;
+
     try {
-      const result = await handler(context);
+      const result = await activeHandler(context);
       return ctx.json({ stateId: inputs.stateId, output: result ?? {} });
     } catch (error) {
       await handleError(context, pluginOptions, error);
     }
   });
 
-  return app;
+  // Attach .on() method to the app for fluent event handler registration
+  // and return the app as a merged type
+  const eventApp = app as Hono & EventHandlerRegistry<TConfig, TEnv, TCommand, TSupportedEvents>;
+  (eventApp as unknown as EventHandlerRegistry<TConfig, TEnv, TCommand, TSupportedEvents>).on = registry.on.bind(registry);
+
+  return eventApp;
 }

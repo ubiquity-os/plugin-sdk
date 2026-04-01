@@ -29,11 +29,10 @@ async function handleError(context: Context, pluginOptions: PluginOptions, error
   }
 }
 
-function getDispatchTokenOrFail(pluginOptions: PluginOptions): string | null {
-  if (!pluginOptions.returnDataToKernel) return null;
-  const token = process.env.PLUGIN_GITHUB_TOKEN;
+function getPluginGitHubToken(): string | null {
+  // Prefer fine-grained PLUGIN_GITHUB_TOKEN if available
+  const token = process.env.PLUGIN_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
   if (!token) {
-    core.setFailed("Error: PLUGIN_GITHUB_TOKEN env is not set");
     return null;
   }
   return token;
@@ -50,6 +49,7 @@ async function getInputsOrFail(pluginOptions: PluginOptions): Promise<InputSchem
   }
 
   if (!pluginOptions.bypassSignatureVerification) {
+    // eslint-disable-next-line @ubiquity-os/no-empty-strings
     const signature = typeof body.signature === "string" ? body.signature : "";
     if (!signature) {
       core.setFailed("Error: Missing signature");
@@ -87,9 +87,9 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
 ) {
   const pluginOptions = getPluginOptions(options);
 
-  const pluginGithubToken = getDispatchTokenOrFail(pluginOptions);
+  const pluginGithubToken = getPluginGitHubToken();
   if (pluginOptions.returnDataToKernel && !pluginGithubToken) {
-    return;
+    core.warning("PLUGIN_GITHUB_TOKEN or GITHUB_TOKEN not set; skipping return to kernel");
   }
 
   const inputs = await getInputsOrFail(pluginOptions);
@@ -129,19 +129,43 @@ export async function createActionsPlugin<TConfig = unknown, TEnv = unknown, TCo
     const result = await handler(context);
     core.setOutput("result", result);
     if (pluginOptions.returnDataToKernel && pluginGithubToken) {
-      await returnDataToKernel(pluginGithubToken, inputs.stateId, result);
+      await returnDataToKernel(pluginGithubToken, inputs.stateId, result, inputs);
     }
   } catch (error) {
     await handleError(context, pluginOptions, error);
   }
 }
 
-async function returnDataToKernel(repoToken: string, stateId: string, output: HandlerReturn) {
+/**
+ * Dispatch result data back to the kernel via repository_dispatch event.
+ * Uses the plugin's fine-grained GitHub token (PLUGIN_GITHUB_TOKEN / GITHUB_TOKEN)
+ * instead of kernel credentials, requiring only repo scope.
+ */
+async function returnDataToKernel(repoToken: string, stateId: string, output: HandlerReturn, inputs: InputSchema) {
   const githubContext = getGithubContext();
   const octokit = new customOctokit({ auth: repoToken });
+
+  // Extract owner/repo from the ref URL (format: https://worker.example.com/{owner}/{repo}/...)
+  let owner: string;
+  let repo: string;
+  try {
+    const refUrl = new URL(inputs.ref);
+    const pathParts = refUrl.pathname.split("/").filter(Boolean);
+    // Expected format: /{owner}/{repo}/...
+    if (pathParts.length < 2) {
+      throw new Error(`Invalid ref URL: ${inputs.ref}`);
+    }
+    owner = pathParts[0];
+    repo = pathParts[1];
+  } catch {
+    // Fallback: try to get from GitHub context
+    owner = githubContext.repo.owner;
+    repo = githubContext.repo.repo;
+  }
+
   await octokit.rest.repos.createDispatchEvent({
-    owner: githubContext.repo.owner,
-    repo: githubContext.repo.repo,
+    owner,
+    repo,
     event_type: "return-data-to-ubiquity-os-kernel",
     client_payload: {
       state_id: stateId,

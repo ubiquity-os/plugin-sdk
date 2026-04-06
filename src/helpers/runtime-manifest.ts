@@ -50,7 +50,7 @@ function parseRefNameFromGitHubRef(ref: string) {
     return ref.slice(GITHUB_TAGS_PREFIX.length);
   }
 
-  return ref;
+  return EMPTY_VALUE;
 }
 
 function overrideShortName(shortName: string, refName: string) {

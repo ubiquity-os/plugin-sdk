@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from "@jest/globals";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { EmitterWebhookEventName } from "@octokit/webhooks";
 import * as crypto from "crypto";
 import { http, HttpResponse } from "msw";
@@ -100,6 +100,10 @@ beforeAll(async () => {
   server.listen();
 });
 
+beforeEach(() => {
+  clearRuntimeEnvironment();
+});
+
 afterEach(() => {
   clearGithubContext();
   clearRuntimeEnvironment();
@@ -166,8 +170,16 @@ describe("SDK worker tests", () => {
       short_name: "ubq/test@feature/full-branch-name",
     });
   });
+  it("Should ignore unsupported GITHUB_REF formats", () => {
+    process.env.GITHUB_REF = "refs/pull/199/merge";
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" });
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@dev",
+    });
+  });
   it("Should preserve the existing short_name when no supported ref env is present", () => {
-    process.env.DENO_DEPLOYMENT_ID = "g0dexesp4mm8";
+    process.env.DENO_DEPLOYMENT_ID = "mock-deployment-id";
     const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" });
     expect(result).toEqual({
       name: "test",

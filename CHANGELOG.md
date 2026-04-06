@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.12.5](https://github.com/ubiquity-os/plugin-sdk/compare/v3.12.4...v3.12.5) (2026-04-06)
+
+
+### Bug Fixes
+
+* harden runtime manifest ref fallback ([648bd8f](https://github.com/ubiquity-os/plugin-sdk/commit/648bd8f7f493d1101d134302840cf19149f98743))
+* honor REF_NAME in runtime manifest ([4385d07](https://github.com/ubiquity-os/plugin-sdk/commit/4385d07c006850c03c4af082fadaffabfbcbefc8))
+* use REF_NAME for runtime manifest short_name ([1d2c307](https://github.com/ubiquity-os/plugin-sdk/commit/1d2c307299aeb721e899b97761dc47ac6737fcb9))
+
 ## [3.12.4](https://github.com/ubiquity-os/plugin-sdk/compare/v3.12.3...v3.12.4) (2026-03-31)
 
 

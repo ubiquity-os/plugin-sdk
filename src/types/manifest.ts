@@ -31,3 +31,4 @@ export const manifestSchema = T.Object({
 });
 
 export type Manifest = Static<typeof manifestSchema>;
+export { resolveRuntimeManifest } from "../helpers/runtime-manifest";

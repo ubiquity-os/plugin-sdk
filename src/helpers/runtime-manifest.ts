@@ -1,40 +1,53 @@
-import { Manifest } from "../types/manifest";
+import type { Manifest } from "../types/manifest";
 
 const EMPTY_VALUE = String();
+const GITHUB_HEADS_PREFIX = "refs/heads/";
+const GITHUB_TAGS_PREFIX = "refs/tags/";
 
-function readRuntimeTimeline() {
-  if (typeof globalThis.Deno !== "undefined" && typeof globalThis.Deno?.env?.get === "function") {
-    const denoTimeline = globalThis.Deno.env.get("DENO_TIMELINE");
-    if (typeof denoTimeline === "string" && denoTimeline.trim()) {
-      return denoTimeline.trim();
+type RuntimeManifestEnv = Record<string, unknown>;
+type GlobalRuntime = typeof globalThis & {
+  Deno?: {
+    env?: {
+      get?: (key: string) => string | undefined;
+    };
+  };
+};
+
+function readRuntimeEnvValue(env: RuntimeManifestEnv | undefined, key: string) {
+  const explicitValue = env?.[key];
+  if (typeof explicitValue === "string" && explicitValue.trim()) {
+    return explicitValue.trim();
+  }
+
+  const runtime = globalThis as GlobalRuntime;
+  if (typeof runtime.Deno?.env?.get === "function") {
+    const denoValue = runtime.Deno.env.get(key);
+    if (typeof denoValue === "string" && denoValue.trim()) {
+      return denoValue.trim();
     }
   }
 
   if (typeof process !== "undefined") {
-    const processTimeline = process.env.DENO_TIMELINE;
-    if (typeof processTimeline === "string" && processTimeline.trim()) {
-      return processTimeline.trim();
+    const processValue = process.env[key];
+    if (typeof processValue === "string" && processValue.trim()) {
+      return processValue.trim();
     }
   }
 
   return EMPTY_VALUE;
 }
 
-function resolveRuntimeRefName(timeline: string) {
-  if (!timeline) {
+function parseRefNameFromGitHubRef(ref: string) {
+  if (!ref) {
     return EMPTY_VALUE;
   }
 
-  if (timeline === "production") {
-    return "main";
+  if (ref.startsWith(GITHUB_HEADS_PREFIX)) {
+    return ref.slice(GITHUB_HEADS_PREFIX.length);
   }
 
-  if (timeline.startsWith("git-branch/")) {
-    return timeline.slice("git-branch/".length);
-  }
-
-  if (timeline.startsWith("preview/")) {
-    return timeline.slice("preview/".length);
+  if (ref.startsWith(GITHUB_TAGS_PREFIX)) {
+    return ref.slice(GITHUB_TAGS_PREFIX.length);
   }
 
   return EMPTY_VALUE;
@@ -54,23 +67,33 @@ function overrideShortName(shortName: string, refName: string) {
   return `${repository}@${refName}`;
 }
 
-export function resolveRuntimeManifest(manifest: Manifest, requestUrl: string): Manifest {
-  const timeline = readRuntimeTimeline();
-  const refName = resolveRuntimeRefName(timeline);
-  if (!refName) {
-    return manifest;
+function resolveRuntimeRefName(env?: RuntimeManifestEnv) {
+  const explicitRefName = readRuntimeEnvValue(env, "REF_NAME");
+  if (explicitRefName) {
+    return explicitRefName;
   }
 
-  let homepageUrl: string | undefined;
-  try {
-    homepageUrl = new URL(requestUrl).origin;
-  } catch {
-    homepageUrl = undefined;
+  const legacyManifestRefName = readRuntimeEnvValue(env, "PLUGIN_MANIFEST_REF_NAME");
+  if (legacyManifestRefName) {
+    return legacyManifestRefName;
+  }
+
+  const githubRefName = readRuntimeEnvValue(env, "GITHUB_REF_NAME");
+  if (githubRefName) {
+    return githubRefName;
+  }
+
+  return parseRefNameFromGitHubRef(readRuntimeEnvValue(env, "GITHUB_REF"));
+}
+
+export function resolveRuntimeManifest(manifest: Manifest, env?: RuntimeManifestEnv): Manifest {
+  const refName = resolveRuntimeRefName(env);
+  if (!refName) {
+    return manifest;
   }
 
   return {
     ...manifest,
     short_name: overrideShortName(manifest.short_name, refName),
-    ...(homepageUrl ? { homepage_url: homepageUrl } : {}),
   };
 }

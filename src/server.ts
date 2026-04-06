@@ -8,12 +8,11 @@ import { CommentHandler } from "./comment";
 import { Context } from "./context";
 import { transformError } from "./error";
 import { getCommand } from "./helpers/command";
-import { resolveRuntimeManifest } from "./helpers/runtime-manifest";
 import { PluginRuntimeInfo } from "./helpers/runtime-info";
 import { customOctokit } from "./octokit";
 import { verifySignature } from "./signature";
 import { inputSchema } from "./types/input-schema";
-import { Manifest } from "./types/manifest";
+import { Manifest, resolveRuntimeManifest } from "./types/manifest";
 import { HandlerReturn } from "./types/sdk";
 import { getPluginOptions, Options } from "./util";
 
@@ -39,7 +38,7 @@ export function createPlugin<TConfig = unknown, TEnv = unknown, TCommand = unkno
   const app = new Hono();
 
   app.get("/manifest.json", (ctx) => {
-    return ctx.json(resolveRuntimeManifest(manifest, ctx.req.url));
+    return ctx.json(resolveRuntimeManifest(manifest, honoEnv(ctx)));
   });
 
   app.post("/", async function appPost(ctx) {

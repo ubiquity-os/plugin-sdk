@@ -1,14 +1,14 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from "@jest/globals";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { EmitterWebhookEventName } from "@octokit/webhooks";
 import * as crypto from "crypto";
 import { http, HttpResponse } from "msw";
 import { KERNEL_PUBLIC_KEY } from "../src/constants";
 import { compressString } from "../src/helpers/compression";
 import { checkLlmRetryableState, retry } from "../src/helpers/retry";
-import { resolveRuntimeManifest } from "../src/helpers/runtime-manifest";
 import { signPayload, verifySignature } from "../src/signature";
 import type { Context } from "../src/context";
 import type { CommandCall } from "../src/types/command";
+import { resolveRuntimeManifest } from "../src/types/manifest";
 import { getPluginOptions } from "../src/util";
 import { server } from "./__mocks__/node";
 import issueCommented from "./__mocks__/requests/issue-comment-post.json";
@@ -40,8 +40,13 @@ function clearGithubContext() {
   delete (globalThis as { __UOS_GITHUB_CONTEXT__?: Record<string, unknown> })[githubContextKey];
 }
 
-function clearRuntimeTimeline() {
+function clearRuntimeEnvironment() {
   delete process.env.DENO_TIMELINE;
+  delete process.env.REF_NAME;
+  delete process.env.PLUGIN_MANIFEST_REF_NAME;
+  delete process.env.GITHUB_REF_NAME;
+  delete process.env.GITHUB_REF;
+  delete process.env.DENO_DEPLOYMENT_ID;
 }
 
 async function getInputs(
@@ -95,9 +100,13 @@ beforeAll(async () => {
   server.listen();
 });
 
+beforeEach(() => {
+  clearRuntimeEnvironment();
+});
+
 afterEach(() => {
   clearGithubContext();
-  clearRuntimeTimeline();
+  clearRuntimeEnvironment();
   server.resetHandlers();
   jest.resetModules();
   jest.restoreAllMocks();
@@ -115,8 +124,8 @@ describe("SDK worker tests", () => {
     const result = await res.json();
     expect(result).toEqual({ name: "test", short_name: "ubq/test@dev" });
   });
-  it("Should serve runtime-adjusted manifest for production timeline", async () => {
-    process.env.DENO_TIMELINE = "production";
+  it("Should prefer REF_NAME for runtime manifest resolution", async () => {
+    process.env.REF_NAME = "test-deno-deploy-app-migration";
     const app = await createTestApp();
     const res = await app.request("https://worker.example.com/manifest.json", {
       method: "GET",
@@ -125,44 +134,56 @@ describe("SDK worker tests", () => {
     const result = await res.json();
     expect(result).toEqual({
       name: "test",
-      short_name: "ubq/test@main",
-      homepage_url: "https://worker.example.com",
+      short_name: "ubq/test@test-deno-deploy-app-migration",
     });
   });
-  it("Should serve runtime-adjusted manifest for git branch timeline", async () => {
-    process.env.DENO_TIMELINE = "git-branch/development";
-    const app = await createTestApp();
-    const res = await app.request("https://worker.example.com/manifest.json", {
-      method: "GET",
-    });
-    expect(res.status).toEqual(200);
-    const result = await res.json();
+  it("Should fall back to PLUGIN_MANIFEST_REF_NAME when REF_NAME is missing", () => {
+    process.env.PLUGIN_MANIFEST_REF_NAME = "compatibility-branch";
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" });
     expect(result).toEqual({
       name: "test",
-      short_name: "ubq/test@development",
-      homepage_url: "https://worker.example.com",
+      short_name: "ubq/test@compatibility-branch",
     });
   });
-  it("Should serve runtime-adjusted manifest for preview timeline", async () => {
-    process.env.DENO_TIMELINE = "preview/abc123";
-    const app = await createTestApp();
-    const res = await app.request("https://worker.example.com/manifest.json", {
-      method: "GET",
-    });
-    expect(res.status).toEqual(200);
-    const result = await res.json();
+  it("Should prefer REF_NAME over PLUGIN_MANIFEST_REF_NAME", () => {
+    process.env.REF_NAME = "full-branch-name";
+    process.env.PLUGIN_MANIFEST_REF_NAME = "compatibility-branch";
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" });
     expect(result).toEqual({
       name: "test",
-      short_name: "ubq/test@abc123",
-      homepage_url: "https://worker.example.com",
+      short_name: "ubq/test@full-branch-name",
     });
   });
-  it("Should keep serving manifest for relative manifest requests when runtime timeline is set", async () => {
-    process.env.DENO_TIMELINE = "git-branch/development";
-    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" }, "/manifest.json");
+  it("Should fall back to GITHUB_REF_NAME when explicit runtime refs are missing", () => {
+    process.env.GITHUB_REF_NAME = "feature/full-branch-name";
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" });
     expect(result).toEqual({
       name: "test",
-      short_name: "ubq/test@development",
+      short_name: "ubq/test@feature/full-branch-name",
+    });
+  });
+  it("Should fall back to the parsed GITHUB_REF when GITHUB_REF_NAME is missing", () => {
+    process.env.GITHUB_REF = "refs/heads/feature/full-branch-name";
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" });
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@feature/full-branch-name",
+    });
+  });
+  it("Should ignore unsupported GITHUB_REF formats", () => {
+    process.env.GITHUB_REF = "refs/pull/199/merge";
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" });
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@dev",
+    });
+  });
+  it("Should preserve the existing short_name when no supported ref env is present", () => {
+    process.env.DENO_DEPLOYMENT_ID = "mock-deployment-id";
+    const result = resolveRuntimeManifest({ name: "test", short_name: "ubq/test@dev" });
+    expect(result).toEqual({
+      name: "test",
+      short_name: "ubq/test@dev",
     });
   });
   it("Should deny POST request with different path", async () => {

@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.12.6](https://github.com/ubiquity-os/plugin-sdk/compare/v3.12.5...v3.12.6) (2026-04-21)
+
+
+### Bug Fixes
+
+* update deno deploy metadata urls ([4b39838](https://github.com/ubiquity-os/plugin-sdk/commit/4b39838c788a4466447dbd28da37e12831bc94a2))
+* update Deno Deploy metadata urls ([e2446a2](https://github.com/ubiquity-os/plugin-sdk/commit/e2446a2c4f718488bbc97e07e85424c8e65be114))
+
 ## [3.12.5](https://github.com/ubiquity-os/plugin-sdk/compare/v3.12.4...v3.12.5) (2026-04-06)
 
 

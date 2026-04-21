@@ -1,6 +1,10 @@
 import { getRuntimeKey } from "hono/adapter";
 import { getGithubContext } from "./github-context";
 
+function formatUtcTimestamp(timestamp: number): string {
+  return new Date(timestamp).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
 export abstract class PluginRuntimeInfo {
   private static _instance: PluginRuntimeInfo | null = null;
   protected _env: Record<string, unknown> = {};
@@ -80,34 +84,15 @@ export class DenoRuntimeInfo extends PluginRuntimeInfo {
     return Deno.env.get("DENO_DEPLOYMENT_ID");
   }
   public get runUrl() {
-    const projectName = Deno.env.get("DENO_PROJECT_NAME");
-    const baseUrl = `https://dash.deno.com/projects/${projectName}/logs`;
-    const start = new Date(Date.now() - 60000).toISOString();
-    const end = new Date(Date.now() + 60000).toISOString();
-    const filters = {
-      query: "",
-      timeRangeOption: "custom",
-      recentValue: "1hour",
-      customValues: {
-        start,
-        end,
-      },
-      logLevels: {
-        debug: true,
-        info: true,
-        warning: true,
-        error: true,
-      },
-      regions: {
-        "gcp-asia-southeast1": true,
-        "gcp-europe-west2": true,
-        "gcp-europe-west3": true,
-        "gcp-southamerica-east1": true,
-        "gcp-us-east4": true,
-        "gcp-us-west2": true,
-      },
-    };
-    const filtersParam = encodeURIComponent(JSON.stringify(filters));
-    return `${baseUrl}?filters=${filtersParam}`;
+    const orgSlug = Deno.env.get("DENO_DEPLOY_ORG_SLUG") || "<missing-deno-org-slug>";
+    const appSlug = Deno.env.get("DENO_DEPLOY_APP_SLUG") || "<missing-deno-app-slug>";
+    const baseUrl = `https://console.deno.com/${orgSlug}/${appSlug}/observability/logs`;
+    const searchParams = new URLSearchParams();
+
+    searchParams.set("start", formatUtcTimestamp(Date.now() - 60000));
+    searchParams.set("end", formatUtcTimestamp(Date.now() + 60000));
+    searchParams.set("tz", "Etc/UTC");
+
+    return `${baseUrl}?${searchParams.toString()}`;
   }
 }

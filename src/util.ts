@@ -21,7 +21,17 @@ export interface Options<TEnvSchema extends TSchema = TAnySchema, TSettingsSchem
 }
 
 export function sanitizeMetadata(obj: LogReturn["metadata"]): string {
-  return JSON.stringify(obj, null, 2).replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/--/g, "&#45;&#45;");
+  if (!obj) return "null";
+  // Extract callstack-related fields that should be preserved unescaped for linking
+  const { stack, callstack, caller, ...content } = obj;
+  // Escape content fields normally
+  const escapedContent = JSON.stringify(content, null, 2).replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/--/g, "&#45;&#45;");
+  const contentObj = JSON.parse(escapedContent);
+  // Merge callstack fields back without additional escaping (they are safe values)
+  if (stack !== undefined) contentObj.stack = stack;
+  if (callstack !== undefined) contentObj.callstack = callstack;
+  if (caller !== undefined) contentObj.caller = caller;
+  return JSON.stringify(contentObj, null, 2);
 }
 
 /**

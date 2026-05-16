@@ -379,7 +379,7 @@ export class CommentHandler {
 
   async postComment(
     context: Context,
-    message: LogReturn | Error,
+    message: LogReturn | Error | string,
     options: CommentOptions = { updateComment: true, raw: false }
   ): Promise<WithIssueNumber<PostedGithubComment> | null> {
     await this._applyCommandResponsePolicy(context);
@@ -390,8 +390,13 @@ export class CommentHandler {
       return null;
     }
 
+    // Convert string to LogReturn-like object
+    const logMessage: LogReturn | Error = typeof message === "string"
+      ? ({ raw: message, diff: message, metadata: {} } as LogReturn)
+      : message;
+
     const shouldTagCommandResponse = this._shouldApplyCommandResponsePolicy(context);
-    const body = this._createCommentBody(context, message, {
+    const body = this._createCommentBody(context, logMessage, {
       ...options,
       commentKind: options.commentKind ?? (shouldTagCommandResponse ? COMMAND_RESPONSE_KIND : undefined),
     });
